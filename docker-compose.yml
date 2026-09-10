@@ -1,0 +1,82 @@
+networks:
+  tensornest_default:
+    name: tensornest_default
+
+volumes:
+  postgres_data:
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: tensornest
+      POSTGRES_PASSWORD: chirath123
+      POSTGRES_DB: tensernest
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks: [tensornest_default]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tensornest -d tensernest"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    networks: [tensornest_default]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    env_file: .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      STORAGE_ROOT: /storage
+      DOCKER_NETWORK: tensornest_default
+    volumes:
+      - ./storage:/storage
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [tensornest_default]
+
+  worker:
+    build: ./backend
+    command: ["arq", "app.workers.worker_settings.WorkerSettings"]
+    env_file: .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      STORAGE_ROOT: /storage
+      DOCKER_NETWORK: tensornest_default
+    volumes:
+      - ./storage:/storage
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [tensornest_default]
+
+  frontend:
+    build: ./frontend
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks: [tensornest_default]
