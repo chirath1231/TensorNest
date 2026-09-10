@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
@@ -15,13 +15,13 @@ export function EmptyState({ icon: Icon, title, description, action }: Props) {
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col items-center justify-center rounded-lg border border-dashed border-neutral-300 px-6 py-16 text-center"
+      className="flex flex-col items-center justify-center rounded-lg border border-dashed border-[#f2bc33] px-6 py-16 text-center"
     >
-      <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-neutral-100">
-        <Icon className="h-5 w-5 text-neutral-400" />
+      <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800">
+        <Icon className="h-5 w-5 text-[#e6c163]" />
       </div>
-      <p className="text-sm font-medium text-neutral-700">{title}</p>
-      {description && <p className="mt-1 max-w-xs text-sm text-neutral-500">{description}</p>}
+      <p className="text-sm font-medium text-[#e6c163] dark:text-[#e6c163]">{title}</p>
+      {description && <p className="mt-1 max-w-xs text-sm text-[#e6c163] dark:text-[#e6c163]">{description}</p>}
       {action && (
         <button
           onClick={action.onClick}

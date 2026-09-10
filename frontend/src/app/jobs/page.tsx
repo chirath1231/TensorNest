@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -53,9 +53,9 @@ function JobsContent() {
       <main className="mx-auto max-w-4xl px-6 py-8">
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <h1 className="text-xl font-semibold">Background Jobs</h1>
+            <h1 className="text-xl font-semibold dark:text-[#e6c163]">Background Jobs</h1>
             {anyLive && (
-              <span className="flex items-center gap-1.5 rounded-full bg-cyan-50 px-2 py-0.5 text-xs font-medium text-cyan-600">
+              <span className="flex items-center gap-1.5 rounded-full bg-cyan-50 px-2 py-0.5 text-xs font-medium text-cyan-600 dark:bg-cyan-950/50 dark:text-cyan-400">
                 <span className="relative flex h-1.5 w-1.5">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-500 opacity-75" />
                   <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-cyan-600" />
@@ -103,7 +103,7 @@ function JobsContent() {
             action={{ label: "New Job", onClick: () => setShowForm(true) }}
           />
         ) : (
-          <ul className="divide-y divide-neutral-200 rounded-lg border border-neutral-200">
+          <ul className="divide-y divide-[#f2bc33] rounded-lg border border-[#f2bc33]">
             <AnimatePresence initial={false}>
               {jobs.map((job) => (
                 <motion.li
@@ -113,7 +113,7 @@ function JobsContent() {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   onClick={() => router.push(`/jobs/${job.id}`)}
-                  className="group relative flex cursor-pointer items-center justify-between overflow-hidden px-4 py-3.5 transition hover:bg-neutral-50"
+                  className="group relative flex cursor-pointer items-center justify-between overflow-hidden px-4 py-3.5 transition hover:bg-neutral-50 dark:hover:bg-neutral-900"
                 >
                   <span
                     className={`absolute left-0 top-0 h-full w-0.5 ${
@@ -127,13 +127,13 @@ function JobsContent() {
                     }`}
                   />
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-neutral-900">{job.name}</span>
+                    <span className="text-sm font-medium text-[#e6c163] dark:text-[#e6c163]">{job.name}</span>
                     <JobStatusBadge status={job.status} />
                   </div>
                   <div className="flex items-center gap-4">
                     {job.status === "running" &&
                       (job.progress > 0 ? (
-                        <div className="h-1.5 w-24 overflow-hidden rounded-full bg-neutral-100">
+                        <div className="h-1.5 w-24 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
                           <motion.div
                             className="h-full rounded-full bg-cyan-500"
                             animate={{ width: `${job.progress * 100}%` }}
@@ -141,7 +141,7 @@ function JobsContent() {
                           />
                         </div>
                       ) : (
-                        <div className="h-1.5 w-24 overflow-hidden rounded-full bg-neutral-100">
+                        <div className="h-1.5 w-24 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
                           <motion.div
                             className="h-full w-1/3 rounded-full bg-cyan-400"
                             animate={{ x: ["-100%", "300%"] }}
@@ -149,7 +149,7 @@ function JobsContent() {
                           />
                         </div>
                       ))}
-                    <span className="text-xs text-neutral-500">
+                    <span className="text-xs text-[#e6c163]">
                       {new Date(job.created_at).toLocaleString()}
                     </span>
                   </div>

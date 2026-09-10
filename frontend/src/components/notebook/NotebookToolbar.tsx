@@ -31,17 +31,17 @@ export function NotebookToolbar({
   saveStatus,
 }: Props) {
   return (
-    <div className="sticky top-0 z-30 flex items-center justify-between border-b border-neutral-200 bg-white/90 px-6 py-3 backdrop-blur">
+    <div className="sticky top-0 z-30 flex items-center justify-between border-b border-[#f2bc33] bg-white/90 px-6 py-3 backdrop-blur dark:bg-neutral-900/90">
       <div className="flex items-center gap-4">
-        <Link href="/dashboard" className="flex items-center gap-1 text-sm text-neutral-500 transition hover:text-neutral-900">
+        <Link href="/dashboard" className="flex items-center gap-1 text-sm text-[#e6c163] transition hover:text-[#e6c163] dark:hover:text-[#e6c163]">
           <ArrowLeft className="h-3.5 w-3.5" />
         </Link>
         <input
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
-          className="rounded-md border-none bg-transparent px-1 text-sm font-medium outline-none transition hover:bg-neutral-100 focus:bg-neutral-100"
+          className="rounded-md border-none bg-transparent px-1 text-sm font-medium outline-none transition hover:bg-neutral-100 focus:bg-neutral-100 dark:text-[#e6c163] dark:hover:bg-neutral-800 dark:focus:bg-neutral-800"
         />
-        <span className="flex items-center gap-1 text-xs text-neutral-400">
+        <span className="flex items-center gap-1 text-xs text-[#e6c163]">
           {saveStatus === "saving" ? (
             <Loader2 className="h-3 w-3 animate-spin" />
           ) : saveStatus === "saved" ? (
@@ -53,14 +53,14 @@ export function NotebookToolbar({
       <div className="flex items-center gap-1.5">
         <button
           onClick={onAddCode}
-          className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-900"
+          className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-[#e6c163] transition hover:bg-neutral-100 hover:text-[#e6c163] dark:text-[#e6c163] dark:hover:bg-neutral-800 dark:hover:text-[#e6c163]"
         >
           <Code2 className="h-3.5 w-3.5" />
           Code
         </button>
         <button
           onClick={onAddMarkdown}
-          className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-900"
+          className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-[#e6c163] transition hover:bg-neutral-100 hover:text-[#e6c163] dark:text-[#e6c163] dark:hover:bg-neutral-800 dark:hover:text-[#e6c163]"
         >
           <Type className="h-3.5 w-3.5" />
           Markdown
@@ -72,14 +72,14 @@ export function NotebookToolbar({
           <Play className="h-3.5 w-3.5" />
           Run All
         </button>
-        <div className="ml-2 flex items-center gap-2 rounded-full bg-neutral-100 px-2.5 py-1">
+        <div className="ml-2 flex items-center gap-2 rounded-full bg-neutral-100 px-2.5 py-1 dark:bg-neutral-800">
           <span className="relative flex h-2 w-2">
             {kernelStatus === "busy" && (
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-500 opacity-75" />
             )}
             <span className={`relative inline-flex h-2 w-2 rounded-full ${statusColor[kernelStatus]}`} />
           </span>
-          <span className="text-xs text-neutral-500">{kernelStatus}</span>
+          <span className="text-xs text-[#e6c163]">{kernelStatus}</span>
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import type { OutputMessage } from "@/lib/kernelClient";
+﻿import type { OutputMessage } from "@/lib/kernelClient";
 
 // eslint-disable-next-line no-control-regex
 const ANSI_REGEX = /\x1b\[[0-9;]*m/g;
@@ -24,14 +24,14 @@ export function OutputRenderer({ outputs }: { outputs: OutputMessage[] }) {
   if (outputs.length === 0) return null;
 
   return (
-    <div className="mt-2 space-y-1 rounded-md bg-neutral-50 p-3">
+    <div className="mt-2 space-y-1 rounded-md bg-neutral-50 p-3 dark:bg-neutral-800/60">
       {outputs.map((output, i) => {
         switch (output.type) {
           case "stream":
             return (
               <pre
                 key={i}
-                className={`whitespace-pre-wrap text-sm ${output.name === "stderr" ? "text-red-600" : "text-neutral-800"}`}
+                className={`whitespace-pre-wrap text-sm ${output.name === "stderr" ? "text-red-600" : "text-neutral-800 dark:text-neutral-200"}`}
               >
                 {output.text}
               </pre>

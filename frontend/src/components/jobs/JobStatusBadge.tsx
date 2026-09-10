@@ -1,11 +1,11 @@
-import type { JobStatus } from "@/lib/types";
+﻿import type { JobStatus } from "@/lib/types";
 
 const colors: Record<JobStatus, string> = {
-  queued: "bg-neutral-100 text-neutral-600",
-  running: "bg-cyan-100 text-cyan-700",
-  succeeded: "bg-green-100 text-green-700",
-  failed: "bg-red-100 text-red-700",
-  cancelled: "bg-neutral-100 text-neutral-500",
+  queued: "bg-neutral-100 text-[#e6c163] dark:bg-neutral-800 dark:text-[#e6c163]",
+  running: "bg-cyan-100 text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-400",
+  succeeded: "bg-green-100 text-green-700 dark:bg-green-950/60 dark:text-green-400",
+  failed: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-400",
+  cancelled: "bg-neutral-100 text-[#e6c163] dark:bg-neutral-800 dark:text-[#e6c163]",
 };
 
 const dotColors: Record<JobStatus, string> = {

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Editor, { OnMount } from "@monaco-editor/react";
 import { ArrowDown, ArrowUp, ChevronRight, Loader2, Play, Trash2 } from "lucide-react";
@@ -42,24 +42,24 @@ export function CodeCell({ cell, onChange, onRun, onRunAndAdvance, onDelete, onM
   const outputs = (cell.outputs as unknown as OutputMessage[]) || [];
 
   return (
-    <div className={`group rounded-lg border p-3 transition-colors ${running ? "border-cyan-300" : "border-neutral-200"}`}>
+    <div className={`group rounded-lg border p-3 transition-colors ${running ? "border-cyan-300" : "border-[#f2bc33]"}`}>
       <div className="mb-2 flex items-center justify-between">
-        <span className="flex items-center gap-1.5 font-mono text-xs text-neutral-400">
+        <span className="flex items-center gap-1.5 font-mono text-xs text-[#e6c163]">
           {running ? <Loader2 className="h-3 w-3 animate-spin text-cyan-500" /> : `[${cell.execution_count ?? " "}]`}
         </span>
         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100">
           {outputs.length > 0 && (
-            <button onClick={() => setCollapsed((c) => !c)} className="text-neutral-400 hover:text-neutral-700" title="Toggle output">
+            <button onClick={() => setCollapsed((c) => !c)} className="text-[#e6c163] hover:text-[#e6c163] dark:hover:text-[#e6c163]" title="Toggle output">
               <ChevronRight className={`h-3.5 w-3.5 transition-transform ${collapsed ? "" : "rotate-90"}`} />
             </button>
           )}
-          <button onClick={handleRun} disabled={running} className="flex items-center gap-1 text-xs text-neutral-600 hover:text-neutral-900" title="Run (Ctrl+Enter)">
+          <button onClick={handleRun} disabled={running} className="flex items-center gap-1 text-xs text-[#e6c163] hover:text-[#e6c163] dark:text-[#e6c163] dark:hover:text-[#e6c163]" title="Run (Ctrl+Enter)">
             <Play className="h-3 w-3" />
           </button>
-          <button onClick={onMoveUp} className="text-neutral-500 hover:text-neutral-900" title="Move up">
+          <button onClick={onMoveUp} className="text-[#e6c163] hover:text-[#e6c163] dark:hover:text-[#e6c163]" title="Move up">
             <ArrowUp className="h-3.5 w-3.5" />
           </button>
-          <button onClick={onMoveDown} className="text-neutral-500 hover:text-neutral-900" title="Move down">
+          <button onClick={onMoveDown} className="text-[#e6c163] hover:text-[#e6c163] dark:hover:text-[#e6c163]" title="Move down">
             <ArrowDown className="h-3.5 w-3.5" />
           </button>
           <button onClick={onDelete} className="text-red-400 hover:text-red-600" title="Delete">
@@ -70,7 +70,7 @@ export function CodeCell({ cell, onChange, onRun, onRunAndAdvance, onDelete, onM
       <Editor
         height={Math.max(60, cell.source.split("\n").length * 20 + 20)}
         language="python"
-        theme="vs"
+        theme="vs-dark"
         value={cell.source}
         onChange={(value) => onChange(value ?? "")}
         onMount={handleMount}
@@ -84,7 +84,7 @@ export function CodeCell({ cell, onChange, onRun, onRunAndAdvance, onDelete, onM
       />
       {!collapsed && <OutputRenderer outputs={outputs} />}
       {collapsed && outputs.length > 0 && (
-        <p className="mt-2 text-xs text-neutral-400">Output collapsed ({outputs.length} item{outputs.length > 1 ? "s" : ""})</p>
+        <p className="mt-2 text-xs text-[#e6c163]">Output collapsed ({outputs.length} item{outputs.length > 1 ? "s" : ""})</p>
       )}
     </div>
   );

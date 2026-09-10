@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -18,7 +18,7 @@ export function SortableCell({ id, children }: { id: string; children: React.Rea
       <button
         {...attributes}
         {...listeners}
-        className="absolute -left-6 top-3 hidden cursor-grab touch-none text-neutral-300 transition hover:text-neutral-600 group-hover/drag:block active:cursor-grabbing"
+        className="absolute -left-6 top-3 hidden cursor-grab touch-none text-[#e6c163] transition hover:text-[#e6c163] group-hover/drag:block active:cursor-grabbing dark:text-[#e6c163] dark:hover:text-[#e6c163]"
         aria-label="Drag to reorder"
       >
         <GripVertical className="h-4 w-4" />

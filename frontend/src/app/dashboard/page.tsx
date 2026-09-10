@@ -71,15 +71,15 @@ function DashboardContent() {
       {dialog}
       <main className="mx-auto max-w-5xl px-6 py-8">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-xl font-semibold">Your Notebooks</h1>
+          <h1 className="text-xl font-semibold dark:text-[#e6c163]">Your Notebooks</h1>
           <div className="flex items-center gap-2">
             <div className="relative">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-400" />
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#e6c163]" />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search notebooks…"
-                className="w-48 rounded-md border border-neutral-300 py-1.5 pl-8 pr-3 text-sm outline-none transition focus:w-64 focus:border-cyan-500"
+                className="w-48 rounded-md border border-[#f2bc33] py-1.5 pl-8 pr-3 text-sm outline-none transition focus:w-64 focus:border-cyan-500 dark:bg-neutral-900 dark:text-[#e6c163] dark:placeholder:text-neutral-500"
               />
             </div>
             <button
@@ -103,7 +103,7 @@ function DashboardContent() {
             action={{ label: "New Notebook", onClick: handleCreate }}
           />
         ) : filtered.length === 0 ? (
-          <p className="py-12 text-center text-sm text-neutral-500">No notebooks match “{query}”.</p>
+          <p className="py-12 text-center text-sm text-[#e6c163]">No notebooks match “{query}”.</p>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <AnimatePresence mode="popLayout">
@@ -116,10 +116,10 @@ function DashboardContent() {
                   exit={{ opacity: 0, scale: 0.96 }}
                   transition={{ duration: 0.15, delay: i * 0.02 }}
                   onClick={() => router.push(`/notebooks/${nb.id}`)}
-                  className="group cursor-pointer rounded-lg border border-neutral-200 p-4 transition hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-md"
+                  className="group cursor-pointer rounded-lg border border-[#f2bc33] bg-white p-4 transition hover:-translate-y-0.5 hover:shadow-md dark:bg-neutral-900"
                 >
                   <div className="mb-3 flex items-start justify-between">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-md bg-neutral-100 text-neutral-500">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-md bg-neutral-100 text-[#e6c163] dark:bg-neutral-800 dark:text-[#e6c163]">
                       <FileText className="h-4 w-4" />
                     </div>
                     <button
@@ -127,14 +127,14 @@ function DashboardContent() {
                         e.stopPropagation();
                         handleDelete(nb);
                       }}
-                      className="rounded-md p-1.5 text-neutral-300 opacity-0 transition hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
+                      className="rounded-md p-1.5 text-[#e6c163] opacity-0 transition hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 dark:text-[#e6c163] dark:hover:bg-red-950/40"
                       aria-label="Delete notebook"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
-                  <p className="truncate text-sm font-medium text-neutral-900">{nb.title}</p>
-                  <p className="mt-1 text-xs text-neutral-500">
+                  <p className="truncate text-sm font-medium text-[#e6c163] dark:text-[#e6c163]">{nb.title}</p>
+                  <p className="mt-1 text-xs text-[#e6c163] dark:text-[#e6c163]">
                     Updated {new Date(nb.updated_at).toLocaleString()}
                   </p>
                 </motion.div>

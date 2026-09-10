@@ -76,7 +76,7 @@ function JobDetailContent() {
 
   if (!job) {
     return (
-      <div className="flex h-screen items-center justify-center text-sm text-neutral-500">Loading…</div>
+      <div className="flex h-screen items-center justify-center text-sm text-[#e6c163]">Loading…</div>
     );
   }
 
@@ -95,20 +95,20 @@ function JobDetailContent() {
       <main className="mx-auto max-w-4xl px-6 py-8">
         <button
           onClick={() => router.push("/jobs")}
-          className="mb-4 flex items-center gap-1.5 text-sm text-neutral-500 transition hover:text-neutral-900"
+          className="mb-4 flex items-center gap-1.5 text-sm text-[#e6c163] transition hover:text-[#e6c163] dark:hover:text-[#e6c163]"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           Jobs
         </button>
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-semibold">{job.name}</h1>
+            <h1 className="text-xl font-semibold dark:text-[#e6c163]">{job.name}</h1>
             <JobStatusBadge status={job.status} />
           </div>
           {(job.status === "queued" || job.status === "running") && (
             <button
               onClick={() => setConfirmOpen(true)}
-              className="rounded-md border border-red-300 px-3 py-1.5 text-sm text-red-600 transition hover:bg-red-50"
+              className="rounded-md border border-red-300 px-3 py-1.5 text-sm text-red-600 transition hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950/40"
             >
               Cancel
             </button>
@@ -116,7 +116,7 @@ function JobDetailContent() {
         </div>
 
         {job.status === "running" && (
-          <div className="mb-6 h-1 overflow-hidden rounded-full bg-neutral-100">
+          <div className="mb-6 h-1 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
             {job.progress > 0 ? (
               <motion.div
                 className="h-full rounded-full bg-cyan-500"
@@ -139,7 +139,7 @@ function JobDetailContent() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="mb-4 overflow-hidden rounded-md bg-red-50 p-3 text-sm text-red-700"
+              className="mb-4 overflow-hidden rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-400"
             >
               {job.error_message}
             </motion.p>
@@ -148,26 +148,26 @@ function JobDetailContent() {
 
         <div className="mb-6 grid grid-cols-3 gap-4 text-sm">
           <div>
-            <p className="text-neutral-500">Provider</p>
+            <p className="text-[#e6c163]">Provider</p>
             <p>{job.provider_type}</p>
           </div>
           <div>
-            <p className="text-neutral-500">Started</p>
+            <p className="text-[#e6c163]">Started</p>
             <p>{job.started_at ? new Date(job.started_at).toLocaleString() : "—"}</p>
           </div>
           <div>
-            <p className="text-neutral-500">Finished</p>
+            <p className="text-[#e6c163]">Finished</p>
             <p>{job.finished_at ? new Date(job.finished_at).toLocaleString() : "—"}</p>
           </div>
         </div>
 
         <div className="mb-6">
           <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-sm font-medium">Logs</h2>
+            <h2 className="text-sm font-medium dark:text-[#e6c163]">Logs</h2>
             <button
               onClick={() => setFollow((v) => !v)}
               className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs transition ${
-                follow ? "bg-cyan-600 text-white" : "text-neutral-500 hover:bg-neutral-100"
+                follow ? "bg-cyan-600 text-white" : "text-[#e6c163] hover:bg-neutral-100 dark:hover:bg-neutral-800"
               }`}
             >
               <ChevronDown className="h-3 w-3" />
@@ -184,11 +184,11 @@ function JobDetailContent() {
         </div>
 
         <div>
-          <h2 className="mb-2 text-sm font-medium">Checkpoints</h2>
+          <h2 className="mb-2 text-sm font-medium dark:text-[#e6c163]">Checkpoints</h2>
           {checkpoints.length === 0 ? (
-            <p className="text-sm text-neutral-500">No checkpoints written yet.</p>
+            <p className="text-sm text-[#e6c163]">No checkpoints written yet.</p>
           ) : (
-            <ul className="divide-y divide-neutral-200 rounded-lg border border-neutral-200">
+            <ul className="divide-y divide-[#f2bc33] rounded-lg border border-[#f2bc33]">
               <AnimatePresence initial={false}>
                 {checkpoints.map((c, i) => (
                   <motion.li
@@ -198,7 +198,7 @@ function JobDetailContent() {
                     transition={{ delay: i * 0.02 }}
                     className="flex items-center gap-2 px-3 py-2 text-sm"
                   >
-                    <FileArchive className="h-3.5 w-3.5 text-neutral-400" />
+                    <FileArchive className="h-3.5 w-3.5 text-[#e6c163]" />
                     {c}
                   </motion.li>
                 ))}

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { ArrowDown, ArrowUp, Pencil, Trash2 } from "lucide-react";
 import { KeyboardEvent, useState } from "react";
@@ -26,17 +26,17 @@ export function MarkdownCell({ source, onChange, onDelete, onMoveUp, onMoveDown,
   }
 
   return (
-    <div className="group rounded-lg border border-neutral-200 p-3">
+    <div className="group rounded-lg border border-[#f2bc33] p-3">
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-xs text-neutral-400">Markdown</span>
+        <span className="text-xs text-[#e6c163]">Markdown</span>
         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100">
-          <button onClick={() => setEditing((e) => !e)} className="text-neutral-500 hover:text-neutral-900" title={editing ? "Preview" : "Edit"}>
+          <button onClick={() => setEditing((e) => !e)} className="text-[#e6c163] hover:text-[#e6c163] dark:hover:text-[#e6c163]" title={editing ? "Preview" : "Edit"}>
             <Pencil className="h-3.5 w-3.5" />
           </button>
-          <button onClick={onMoveUp} className="text-neutral-500 hover:text-neutral-900" title="Move up">
+          <button onClick={onMoveUp} className="text-[#e6c163] hover:text-[#e6c163] dark:hover:text-[#e6c163]" title="Move up">
             <ArrowUp className="h-3.5 w-3.5" />
           </button>
-          <button onClick={onMoveDown} className="text-neutral-500 hover:text-neutral-900" title="Move down">
+          <button onClick={onMoveDown} className="text-[#e6c163] hover:text-[#e6c163] dark:hover:text-[#e6c163]" title="Move down">
             <ArrowDown className="h-3.5 w-3.5" />
           </button>
           <button onClick={onDelete} className="text-red-400 hover:text-red-600" title="Delete">
@@ -50,12 +50,12 @@ export function MarkdownCell({ source, onChange, onDelete, onMoveUp, onMoveDown,
           onChange={(e) => onChange(e.target.value)}
           onBlur={() => setEditing(false)}
           onKeyDown={handleKeyDown}
-          className="w-full resize-y rounded-md border border-neutral-200 p-2 font-mono text-sm outline-none transition focus:border-neutral-900"
+          className="w-full resize-y rounded-md border border-[#f2bc33] p-2 font-mono text-sm outline-none transition focus:border-cyan-500 dark:bg-neutral-900 dark:text-neutral-100"
           rows={Math.max(3, source.split("\n").length)}
           autoFocus
         />
       ) : (
-        <div onClick={() => setEditing(true)} className="prose prose-sm max-w-none cursor-text">
+        <div onClick={() => setEditing(true)} className="prose prose-sm max-w-none cursor-text dark:prose-invert">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{source || "*Empty markdown cell*"}</ReactMarkdown>
         </div>
       )}

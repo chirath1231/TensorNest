@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -32,19 +32,19 @@ export function ConfirmDialog({
           onClick={onCancel}
         >
           <motion.div
-            className="w-full max-w-sm rounded-lg border border-neutral-200 bg-white p-5 shadow-lg"
+            className="w-full max-w-sm rounded-lg border border-[#f2bc33] bg-white p-5 shadow-lg dark:bg-neutral-900"
             initial={{ opacity: 0, scale: 0.96, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
             transition={{ duration: 0.15 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-sm font-semibold text-neutral-900">{title}</h2>
-            {description && <p className="mt-1.5 text-sm text-neutral-500">{description}</p>}
+            <h2 className="text-sm font-semibold text-[#e6c163] dark:text-[#e6c163]">{title}</h2>
+            {description && <p className="mt-1.5 text-sm text-[#e6c163]">{description}</p>}
             <div className="mt-4 flex justify-end gap-2">
               <button
                 onClick={onCancel}
-                className="rounded-md border border-neutral-200 px-3 py-1.5 text-sm text-neutral-600 transition hover:bg-neutral-50"
+                className="rounded-md border border-[#f2bc33] px-3 py-1.5 text-sm text-[#e6c163] transition hover:bg-neutral-50 dark:text-[#e6c163] dark:hover:bg-neutral-800"
               >
                 Cancel
               </button>

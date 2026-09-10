@@ -40,15 +40,15 @@ export function JobForm({ onCreated }: { onCreated: () => void }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 rounded-lg border border-neutral-200 bg-neutral-50/50 p-4">
-      <h2 className="text-sm font-medium">Submit a background job</h2>
-      {error && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+    <form onSubmit={handleSubmit} className="space-y-3 rounded-lg border border-[#f2bc33] bg-neutral-50/50 p-4 dark:bg-neutral-900/50">
+      <h2 className="text-sm font-medium dark:text-[#e6c163]">Submit a background job</h2>
+      {error && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950/40 dark:text-red-400">{error}</p>}
       <input
         required
         placeholder="Job name"
         value={name}
         onChange={(e) => setName(e.target.value)}
-        className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+        className="w-full rounded-md border border-[#f2bc33] bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-500 dark:bg-neutral-900 dark:text-[#e6c163]"
       />
       <textarea
         required
@@ -56,9 +56,9 @@ export function JobForm({ onCreated }: { onCreated: () => void }) {
         onChange={(e) => setScript(e.target.value)}
         rows={10}
         spellCheck={false}
-        className="w-full rounded-md border border-neutral-300 bg-white p-2 font-mono text-xs outline-none transition focus:border-cyan-500"
+        className="w-full rounded-md border border-[#f2bc33] bg-white p-2 font-mono text-xs outline-none transition focus:border-cyan-500 dark:bg-neutral-900 dark:text-neutral-100"
       />
-      <p className="text-xs text-neutral-500">
+      <p className="text-xs text-[#e6c163]">
         Runs on the CPU-only local provider. Write checkpoints to the <code>CHECKPOINT_DIR</code> env var.
       </p>
       <button

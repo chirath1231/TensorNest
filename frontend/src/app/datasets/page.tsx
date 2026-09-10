@@ -122,15 +122,15 @@ function DatasetsContent() {
       {dialog}
       <main className="mx-auto max-w-4xl px-6 py-8">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-xl font-semibold">Datasets</h1>
+          <h1 className="text-xl font-semibold dark:text-[#e6c163]">Datasets</h1>
           <div className="flex items-center gap-2">
             <div className="relative">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-400" />
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#e6c163]" />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search files…"
-                className="w-48 rounded-md border border-neutral-300 py-1.5 pl-8 pr-3 text-sm outline-none transition focus:w-64 focus:border-cyan-500"
+                className="w-48 rounded-md border border-[#f2bc33] py-1.5 pl-8 pr-3 text-sm outline-none transition focus:w-64 focus:border-cyan-500 dark:bg-neutral-900 dark:text-[#e6c163]"
               />
             </div>
             <label className="cursor-pointer rounded-md bg-cyan-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-cyan-700">
@@ -146,11 +146,11 @@ function DatasetsContent() {
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleDrop}
           className={`mb-6 flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-8 text-center transition-colors ${
-            dragActive ? "border-cyan-500 bg-cyan-50" : "border-neutral-200"
+            dragActive ? "border-cyan-500 bg-cyan-50 dark:bg-cyan-950/30" : "border-[#f2bc33]"
           }`}
         >
-          <UploadCloud className={`mb-2 h-6 w-6 ${dragActive ? "text-cyan-600" : "text-neutral-400"}`} />
-          <p className="text-sm text-neutral-600">
+          <UploadCloud className={`mb-2 h-6 w-6 ${dragActive ? "text-cyan-600" : "text-[#e6c163]"}`} />
+          <p className="text-sm text-[#e6c163] dark:text-[#e6c163]">
             Drag and drop files here, or{" "}
             <button onClick={() => inputRef.current?.click()} className="font-medium text-cyan-600 underline">
               browse
@@ -165,13 +165,13 @@ function DatasetsContent() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="mb-3 overflow-hidden rounded-md border border-neutral-200 px-3 py-2"
+              className="mb-3 overflow-hidden rounded-md border border-[#f2bc33] px-3 py-2"
             >
               <div className="mb-1 flex items-center justify-between text-xs">
-                <span className="truncate text-neutral-700">{u.name}</span>
-                <span className="text-neutral-400">{u.progress}%</span>
+                <span className="truncate text-[#e6c163] dark:text-[#e6c163]">{u.name}</span>
+                <span className="text-[#e6c163]">{u.progress}%</span>
               </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-neutral-100">
+              <div className="h-1.5 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
                 <motion.div
                   className="h-full rounded-full bg-cyan-600"
                   animate={{ width: `${u.progress}%` }}
@@ -191,9 +191,9 @@ function DatasetsContent() {
             description="Upload a dataset to make it available to notebooks and jobs."
           />
         ) : filtered.length === 0 ? (
-          <p className="py-12 text-center text-sm text-neutral-500">No files match “{query}”.</p>
+          <p className="py-12 text-center text-sm text-[#e6c163]">No files match “{query}”.</p>
         ) : (
-          <ul className="divide-y divide-neutral-200 rounded-lg border border-neutral-200">
+          <ul className="divide-y divide-[#f2bc33] rounded-lg border border-[#f2bc33]">
             <AnimatePresence initial={false}>
               {filtered.map((file) => {
                 const Icon = fileIcon(file.filename);
@@ -207,19 +207,19 @@ function DatasetsContent() {
                     className="group flex items-center justify-between px-4 py-3"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-md bg-neutral-100 text-neutral-500">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-md bg-neutral-100 text-[#e6c163] dark:bg-neutral-800 dark:text-[#e6c163]">
                         <Icon className="h-4 w-4" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium">{file.filename}</p>
-                        <p className="text-xs text-neutral-500">
-                          {formatSize(file.size)} · {new Date(file.created_at).toLocaleString()}
+                        <p className="text-sm font-medium dark:text-[#e6c163]">{file.filename}</p>
+                        <p className="text-xs text-[#e6c163]">
+                          {formatSize(file.size)} Â· {new Date(file.created_at).toLocaleString()}
                         </p>
                       </div>
                     </div>
                     <button
                       onClick={() => handleDelete(file)}
-                      className="rounded-md p-1.5 text-neutral-300 opacity-0 transition hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
+                      className="rounded-md p-1.5 text-[#e6c163] opacity-0 transition hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 dark:text-[#e6c163] dark:hover:bg-red-950/40"
                       aria-label="Delete file"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
