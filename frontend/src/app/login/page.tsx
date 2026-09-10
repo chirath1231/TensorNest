@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/AuthContext";
 
@@ -30,9 +31,31 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-50">
-      <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4 rounded-lg border border-neutral-200 bg-white p-8 shadow-sm">
-        <h1 className="text-lg font-semibold">Sign in to TensorNest</h1>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+      <motion.form
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2 }}
+        onSubmit={handleSubmit}
+        className="w-full max-w-sm space-y-4 rounded-lg border border-neutral-200 bg-white p-8 shadow-sm"
+      >
+        <div>
+          <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-md bg-neutral-900 text-sm font-semibold text-white">
+            TN
+          </div>
+          <h1 className="text-lg font-semibold">Sign in to TensorNest</h1>
+        </div>
+        <AnimatePresence>
+          {error && (
+            <motion.p
+              initial={{ opacity: 0, x: -4 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0 }}
+              className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600"
+            >
+              {error}
+            </motion.p>
+          )}
+        </AnimatePresence>
         <div className="space-y-1">
           <label className="text-sm text-neutral-600">Email</label>
           <input
@@ -40,7 +63,7 @@ export default function LoginPage() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900"
+            className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none transition focus:border-neutral-900"
           />
         </div>
         <div className="space-y-1">
@@ -50,13 +73,13 @@ export default function LoginPage() {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900"
+            className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none transition focus:border-neutral-900"
           />
         </div>
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+          className="w-full rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:opacity-50"
         >
           {submitting ? "Signing in…" : "Sign in"}
         </button>
@@ -66,7 +89,7 @@ export default function LoginPage() {
             Register
           </Link>
         </p>
-      </form>
+      </motion.form>
     </div>
   );
 }

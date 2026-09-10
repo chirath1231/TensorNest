@@ -1,4 +1,5 @@
-import { apiFetch } from "./api";
+import { apiFetch, API_BASE_URL, ApiError } from "./api";
+import { getAccessToken } from "./auth";
 import type { FileRecord, Job, Notebook, NotebookSummary } from "./types";
 
 export const notebooksApi = {
@@ -32,6 +33,34 @@ export const filesApi = {
     const formData = new FormData();
     formData.append("file", file);
     return apiFetch<FileRecord>("/files", { method: "POST", body: formData });
+  },
+  uploadWithProgress: (file: File, onProgress: (percent: number) => void) => {
+    return new Promise<FileRecord>((resolve, reject) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `${API_BASE_URL}/files`);
+      const token = getAccessToken();
+      if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+      };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(JSON.parse(xhr.responseText));
+        } else {
+          let detail = xhr.statusText;
+          try {
+            detail = JSON.parse(xhr.responseText).detail || detail;
+          } catch {
+            // ignore non-JSON error bodies
+          }
+          reject(new ApiError(xhr.status, detail));
+        }
+      };
+      xhr.onerror = () => reject(new ApiError(0, "Network error"));
+      xhr.send(formData);
+    });
   },
   remove: (id: string) => apiFetch<void>(`/files/${id}`, { method: "DELETE" }),
 };

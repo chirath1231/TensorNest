@@ -1,11 +1,23 @@
 "use client";
 
+import {
+  DndContext,
+  DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { AuthGuard } from "@/components/AuthGuard";
 import { CodeCell } from "@/components/notebook/CodeCell";
 import { MarkdownCell } from "@/components/notebook/MarkdownCell";
 import { NotebookToolbar } from "@/components/notebook/NotebookToolbar";
+import { SortableCell } from "@/components/notebook/SortableCell";
 import { useKernel } from "@/components/notebook/useKernel";
 import type { OutputMessage } from "@/lib/kernelClient";
 import { notebooksApi } from "@/lib/resources";
@@ -32,12 +44,20 @@ function NotebookEditorContent() {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { status: kernelStatus, runCode } = useKernel(notebookId);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
   useEffect(() => {
-    notebooksApi.get(notebookId).then((nb) => {
-      setNotebook(nb);
-      setTitle(nb.title);
-      setCells(nb.content.cells.length > 0 ? nb.content.cells : [newCell("code")]);
-    });
+    notebooksApi
+      .get(notebookId)
+      .then((nb) => {
+        setNotebook(nb);
+        setTitle(nb.title);
+        setCells(nb.content.cells.length > 0 ? nb.content.cells : [newCell("code")]);
+      })
+      .catch(() => toast.error("Failed to load notebook"));
   }, [notebookId]);
 
   const scheduleSave = useCallback(() => {
@@ -53,7 +73,10 @@ function NotebookEditorContent() {
               content: { ...notebook?.content, cells: currentCells },
             })
             .then(() => setSaveStatus("saved"))
-            .catch(() => setSaveStatus("unsaved"));
+            .catch(() => {
+              setSaveStatus("unsaved");
+              toast.error("Failed to save notebook");
+            });
           return currentTitle;
         });
         return currentCells;
@@ -93,6 +116,29 @@ function NotebookEditorContent() {
     scheduleSave();
   }
 
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setCells((prev) => {
+      const oldIndex = prev.findIndex((c) => c.id === active.id);
+      const newIndex = prev.findIndex((c) => c.id === over.id);
+      return arrayMove(prev, oldIndex, newIndex);
+    });
+    scheduleSave();
+  }
+
+  function advanceFrom(id: string) {
+    setCells((prev) => {
+      const index = prev.findIndex((c) => c.id === id);
+      if (index === -1) return prev;
+      if (index === prev.length - 1) {
+        scheduleSave();
+        return [...prev, newCell("code")];
+      }
+      return prev;
+    });
+  }
+
   async function runCell(cell: NotebookCell) {
     if (cell.cell_type !== "code") return;
     const outputs: OutputMessage[] = [];
@@ -114,6 +160,7 @@ function NotebookEditorContent() {
         traceback: [],
       });
       updateCell(cell.id, { outputs: [...outputs] });
+      toast.error("Failed to reach kernel");
     }
   }
 
@@ -123,6 +170,7 @@ function NotebookEditorContent() {
         await runCell(cell);
       }
     }
+    toast.success("Run All complete");
   }
 
   if (!notebook) {
@@ -140,29 +188,35 @@ function NotebookEditorContent() {
         kernelStatus={kernelStatus}
         saveStatus={saveStatus}
       />
-      <main className="mx-auto max-w-4xl space-y-3 px-6 py-6">
-        {cells.map((cell) =>
-          cell.cell_type === "code" ? (
-            <CodeCell
-              key={cell.id}
-              cell={cell}
-              onChange={(source) => updateCell(cell.id, { source })}
-              onRun={() => runCell(cell)}
-              onDelete={() => deleteCell(cell.id)}
-              onMoveUp={() => moveCell(cell.id, -1)}
-              onMoveDown={() => moveCell(cell.id, 1)}
-            />
-          ) : (
-            <MarkdownCell
-              key={cell.id}
-              source={cell.source}
-              onChange={(source) => updateCell(cell.id, { source })}
-              onDelete={() => deleteCell(cell.id)}
-              onMoveUp={() => moveCell(cell.id, -1)}
-              onMoveDown={() => moveCell(cell.id, 1)}
-            />
-          )
-        )}
+      <main className="mx-auto max-w-4xl space-y-3 py-6 pl-9 pr-6">
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={cells.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+            {cells.map((cell) => (
+              <SortableCell key={cell.id} id={cell.id}>
+                {cell.cell_type === "code" ? (
+                  <CodeCell
+                    cell={cell}
+                    onChange={(source) => updateCell(cell.id, { source })}
+                    onRun={() => runCell(cell)}
+                    onRunAndAdvance={() => advanceFrom(cell.id)}
+                    onDelete={() => deleteCell(cell.id)}
+                    onMoveUp={() => moveCell(cell.id, -1)}
+                    onMoveDown={() => moveCell(cell.id, 1)}
+                  />
+                ) : (
+                  <MarkdownCell
+                    source={cell.source}
+                    onChange={(source) => updateCell(cell.id, { source })}
+                    onAdvance={() => advanceFrom(cell.id)}
+                    onDelete={() => deleteCell(cell.id)}
+                    onMoveUp={() => moveCell(cell.id, -1)}
+                    onMoveDown={() => moveCell(cell.id, 1)}
+                  />
+                )}
+              </SortableCell>
+            ))}
+          </SortableContext>
+        </DndContext>
       </main>
     </div>
   );

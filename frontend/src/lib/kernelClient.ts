@@ -54,7 +54,13 @@ export class KernelClient {
       this.ws = new WebSocket(wsUrl);
       this.ws.onopen = () => resolve();
       this.ws.onerror = () => reject(new Error("Kernel WebSocket connection failed"));
-      this.ws.onclose = () => this.onStatusChange?.("disconnected");
+      this.ws.onclose = () => {
+        this.onStatusChange?.("disconnected");
+        for (const { reject: rejectPending } of this.pending.values()) {
+          rejectPending(new Error("Kernel connection closed"));
+        }
+        this.pending.clear();
+      };
       this.ws.onmessage = (event) => this.handleMessage(JSON.parse(event.data));
     });
   }

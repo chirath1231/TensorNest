@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from uuid import UUID
 
 import websockets
@@ -15,6 +16,7 @@ from app.models.user import User
 from app.services import kernel_service, notebook_service
 
 router = APIRouter(tags=["kernels"])
+logger = logging.getLogger(__name__)
 
 
 @router.post("/notebooks/{notebook_id}/kernel")
@@ -89,7 +91,10 @@ async def kernel_ws_proxy(websocket: WebSocket, session_id: UUID, token: str) ->
             )
     except (WebSocketDisconnect, websockets.exceptions.ConnectionClosed):
         pass
-    except Exception:  # noqa: BLE001
+    except Exception:
+        logger.exception(
+            "Kernel WS proxy failed for session %s (upstream=%s)", session_id, upstream_url
+        )
         await websocket.close(code=1011)
 
 

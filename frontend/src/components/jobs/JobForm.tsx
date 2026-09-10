@@ -40,22 +40,23 @@ export function JobForm({ onCreated }: { onCreated: () => void }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 rounded-lg border border-neutral-200 p-4">
+    <form onSubmit={handleSubmit} className="space-y-3 rounded-lg border border-neutral-200 bg-neutral-50/50 p-4">
       <h2 className="text-sm font-medium">Submit a background job</h2>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
       <input
         required
         placeholder="Job name"
         value={name}
         onChange={(e) => setName(e.target.value)}
-        className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900"
+        className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-neutral-900"
       />
       <textarea
         required
         value={script}
         onChange={(e) => setScript(e.target.value)}
         rows={10}
-        className="w-full rounded-md border border-neutral-300 p-2 font-mono text-xs outline-none focus:border-neutral-900"
+        spellCheck={false}
+        className="w-full rounded-md border border-neutral-300 bg-white p-2 font-mono text-xs outline-none transition focus:border-neutral-900"
       />
       <p className="text-xs text-neutral-500">
         Runs on the CPU-only local provider. Write checkpoints to the <code>CHECKPOINT_DIR</code> env var.
@@ -63,7 +64,7 @@ export function JobForm({ onCreated }: { onCreated: () => void }) {
       <button
         type="submit"
         disabled={submitting}
-        className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+        className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:opacity-50"
       >
         {submitting ? "Submitting…" : "Submit Job"}
       </button>
