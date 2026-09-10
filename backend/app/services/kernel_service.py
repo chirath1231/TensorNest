@@ -126,3 +126,23 @@ async def reap_idle_sessions() -> None:
 async def touch_session(db: AsyncSession, session: KernelSession) -> None:
     session.last_activity = datetime.now(timezone.utc)
     await db.commit()
+
+
+async def mark_session_dead(db: AsyncSession, session: KernelSession) -> None:
+    """Called when the WS proxy can't reach a session's kernel container
+    (e.g. it crashed or was reclaimed out-of-band). Marks it stopped so the
+    next connect attempt spins up a fresh container instead of retrying a
+    session that will never come back."""
+    if session.status != "running":
+        return
+
+    def _remove() -> None:
+        client = _client()
+        try:
+            client.containers.get(session.container_id).remove(force=True)
+        except NotFound:
+            pass
+
+    await asyncio.to_thread(_remove)
+    session.status = "stopped"
+    await db.commit()

@@ -42,10 +42,10 @@ export function CodeCell({ cell, onChange, onRun, onRunAndAdvance, onDelete, onM
   const outputs = (cell.outputs as unknown as OutputMessage[]) || [];
 
   return (
-    <div className={`group rounded-lg border p-3 transition-colors ${running ? "border-blue-300" : "border-neutral-200"}`}>
+    <div className={`group rounded-lg border p-3 transition-colors ${running ? "border-cyan-300" : "border-neutral-200"}`}>
       <div className="mb-2 flex items-center justify-between">
         <span className="flex items-center gap-1.5 font-mono text-xs text-neutral-400">
-          {running ? <Loader2 className="h-3 w-3 animate-spin text-blue-500" /> : `[${cell.execution_count ?? " "}]`}
+          {running ? <Loader2 className="h-3 w-3 animate-spin text-cyan-500" /> : `[${cell.execution_count ?? " "}]`}
         </span>
         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100">
           {outputs.length > 0 && (

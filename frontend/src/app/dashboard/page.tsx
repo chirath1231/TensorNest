@@ -79,13 +79,13 @@ function DashboardContent() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search notebooks…"
-                className="w-48 rounded-md border border-neutral-300 py-1.5 pl-8 pr-3 text-sm outline-none transition focus:w-64 focus:border-neutral-900"
+                className="w-48 rounded-md border border-neutral-300 py-1.5 pl-8 pr-3 text-sm outline-none transition focus:w-64 focus:border-cyan-500"
               />
             </div>
             <button
               onClick={handleCreate}
               disabled={creating}
-              className="flex items-center gap-1.5 rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-md bg-cyan-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-cyan-700 disabled:opacity-50"
             >
               <Plus className="h-4 w-4" />
               {creating ? "Creating…" : "New Notebook"}

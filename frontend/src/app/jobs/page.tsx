@@ -55,10 +55,10 @@ function JobsContent() {
           <div className="flex items-center gap-2.5">
             <h1 className="text-xl font-semibold">Background Jobs</h1>
             {anyLive && (
-              <span className="flex items-center gap-1.5 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-600">
+              <span className="flex items-center gap-1.5 rounded-full bg-cyan-50 px-2 py-0.5 text-xs font-medium text-cyan-600">
                 <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-500 opacity-75" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-blue-600" />
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-500 opacity-75" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-cyan-600" />
                 </span>
                 Live
               </span>
@@ -66,7 +66,7 @@ function JobsContent() {
           </div>
           <button
             onClick={() => setShowForm((v) => !v)}
-            className="flex items-center gap-1.5 rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-800"
+            className="flex items-center gap-1.5 rounded-md bg-cyan-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-cyan-700"
           >
             {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
             {showForm ? "Cancel" : "New Job"}
@@ -118,7 +118,7 @@ function JobsContent() {
                   <span
                     className={`absolute left-0 top-0 h-full w-0.5 ${
                       job.status === "running"
-                        ? "bg-blue-500"
+                        ? "bg-cyan-500"
                         : job.status === "succeeded"
                           ? "bg-green-500"
                           : job.status === "failed"
@@ -135,7 +135,7 @@ function JobsContent() {
                       (job.progress > 0 ? (
                         <div className="h-1.5 w-24 overflow-hidden rounded-full bg-neutral-100">
                           <motion.div
-                            className="h-full rounded-full bg-blue-500"
+                            className="h-full rounded-full bg-cyan-500"
                             animate={{ width: `${job.progress * 100}%` }}
                             transition={{ duration: 0.4 }}
                           />
@@ -143,7 +143,7 @@ function JobsContent() {
                       ) : (
                         <div className="h-1.5 w-24 overflow-hidden rounded-full bg-neutral-100">
                           <motion.div
-                            className="h-full w-1/3 rounded-full bg-blue-400"
+                            className="h-full w-1/3 rounded-full bg-cyan-400"
                             animate={{ x: ["-100%", "300%"] }}
                             transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut" }}
                           />

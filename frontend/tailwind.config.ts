@@ -7,7 +7,7 @@ const config: Config = {
       keyframes: {
         "fade-in": { from: { opacity: "0" }, to: { opacity: "1" } },
         "flash": {
-          "0%": { backgroundColor: "rgba(59,130,246,0.12)" },
+          "0%": { backgroundColor: "rgba(6,182,212,0.12)" },
           "100%": { backgroundColor: "transparent" },
         },
       },

@@ -119,13 +119,13 @@ function JobDetailContent() {
           <div className="mb-6 h-1 overflow-hidden rounded-full bg-neutral-100">
             {job.progress > 0 ? (
               <motion.div
-                className="h-full rounded-full bg-blue-500"
+                className="h-full rounded-full bg-cyan-500"
                 animate={{ width: `${job.progress * 100}%` }}
                 transition={{ duration: 0.4 }}
               />
             ) : (
               <motion.div
-                className="h-full w-1/4 rounded-full bg-blue-400"
+                className="h-full w-1/4 rounded-full bg-cyan-400"
                 animate={{ x: ["-100%", "500%"] }}
                 transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
               />
@@ -167,7 +167,7 @@ function JobDetailContent() {
             <button
               onClick={() => setFollow((v) => !v)}
               className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs transition ${
-                follow ? "bg-neutral-900 text-white" : "text-neutral-500 hover:bg-neutral-100"
+                follow ? "bg-cyan-600 text-white" : "text-neutral-500 hover:bg-neutral-100"
               }`}
             >
               <ChevronDown className="h-3 w-3" />

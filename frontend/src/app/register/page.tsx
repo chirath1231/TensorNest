@@ -40,7 +40,7 @@ export default function RegisterPage() {
         className="w-full max-w-sm space-y-4 rounded-lg border border-neutral-200 bg-white p-8 shadow-sm"
       >
         <div>
-          <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-md bg-neutral-900 text-sm font-semibold text-white">
+          <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-md bg-cyan-600 text-sm font-semibold text-white">
             TN
           </div>
           <h1 className="text-lg font-semibold">Create your TensorNest account</h1>
@@ -63,7 +63,7 @@ export default function RegisterPage() {
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none transition focus:border-neutral-900"
+            className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
           />
         </div>
         <div className="space-y-1">
@@ -73,7 +73,7 @@ export default function RegisterPage() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none transition focus:border-neutral-900"
+            className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
           />
         </div>
         <div className="space-y-1">
@@ -84,19 +84,19 @@ export default function RegisterPage() {
             minLength={8}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none transition focus:border-neutral-900"
+            className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
           />
         </div>
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:opacity-50"
+          className="w-full rounded-md bg-cyan-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-cyan-700 disabled:opacity-50"
         >
           {submitting ? "Creating account…" : "Create account"}
         </button>
         <p className="text-center text-sm text-neutral-500">
           Already have an account?{" "}
-          <Link href="/login" className="text-neutral-900 underline">
+          <Link href="/login" className="text-cyan-600 underline">
             Sign in
           </Link>
         </p>

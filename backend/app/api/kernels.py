@@ -95,6 +95,10 @@ async def kernel_ws_proxy(websocket: WebSocket, session_id: UUID, token: str) ->
         logger.exception(
             "Kernel WS proxy failed for session %s (upstream=%s)", session_id, upstream_url
         )
+        async with _db_session() as db:
+            dead_session = await db.get(KernelSession, session_id)
+            if dead_session is not None:
+                await kernel_service.mark_session_dead(db, dead_session)
         await websocket.close(code=1011)
 
 

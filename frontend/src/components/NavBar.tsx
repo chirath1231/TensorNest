@@ -30,14 +30,14 @@ export function NavBar() {
                 key={link.href}
                 href={link.href}
                 className={`relative px-2.5 py-1.5 text-sm transition-colors ${
-                  active ? "text-neutral-900 font-medium" : "text-neutral-500 hover:text-neutral-900"
+                  active ? "text-cyan-600 font-medium" : "text-neutral-500 hover:text-neutral-900"
                 }`}
               >
                 {link.label}
                 {active && (
                   <motion.div
                     layoutId="nav-active-pill"
-                    className="absolute inset-0 -z-10 rounded-md bg-neutral-100"
+                    className="absolute inset-0 -z-10 rounded-md bg-cyan-50"
                     transition={{ type: "spring", stiffness: 500, damping: 35 }}
                   />
                 )}
@@ -47,7 +47,7 @@ export function NavBar() {
         </div>
       </div>
       <div className="flex items-center gap-3">
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-neutral-900 text-xs font-medium text-white">
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-600 text-xs font-medium text-white">
           {initials}
         </div>
         <span className="hidden text-sm text-neutral-500 sm:inline">{user?.email}</span>

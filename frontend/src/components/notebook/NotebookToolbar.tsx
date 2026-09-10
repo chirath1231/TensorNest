@@ -67,7 +67,7 @@ export function NotebookToolbar({
         </button>
         <button
           onClick={onRunAll}
-          className="flex items-center gap-1.5 rounded-md bg-neutral-900 px-2.5 py-1.5 text-sm text-white transition hover:bg-neutral-800"
+          className="flex items-center gap-1.5 rounded-md bg-cyan-600 px-2.5 py-1.5 text-sm text-white transition hover:bg-cyan-700"
         >
           <Play className="h-3.5 w-3.5" />
           Run All

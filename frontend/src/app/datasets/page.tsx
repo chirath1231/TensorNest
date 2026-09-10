@@ -130,10 +130,10 @@ function DatasetsContent() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search files…"
-                className="w-48 rounded-md border border-neutral-300 py-1.5 pl-8 pr-3 text-sm outline-none transition focus:w-64 focus:border-neutral-900"
+                className="w-48 rounded-md border border-neutral-300 py-1.5 pl-8 pr-3 text-sm outline-none transition focus:w-64 focus:border-cyan-500"
               />
             </div>
-            <label className="cursor-pointer rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-800">
+            <label className="cursor-pointer rounded-md bg-cyan-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-cyan-700">
               Upload File
               <input ref={inputRef} type="file" multiple onChange={handleFileInput} className="hidden" />
             </label>
@@ -146,13 +146,13 @@ function DatasetsContent() {
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleDrop}
           className={`mb-6 flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-8 text-center transition-colors ${
-            dragActive ? "border-neutral-900 bg-neutral-50" : "border-neutral-200"
+            dragActive ? "border-cyan-500 bg-cyan-50" : "border-neutral-200"
           }`}
         >
-          <UploadCloud className={`mb-2 h-6 w-6 ${dragActive ? "text-neutral-900" : "text-neutral-400"}`} />
+          <UploadCloud className={`mb-2 h-6 w-6 ${dragActive ? "text-cyan-600" : "text-neutral-400"}`} />
           <p className="text-sm text-neutral-600">
             Drag and drop files here, or{" "}
-            <button onClick={() => inputRef.current?.click()} className="font-medium text-neutral-900 underline">
+            <button onClick={() => inputRef.current?.click()} className="font-medium text-cyan-600 underline">
               browse
             </button>
           </p>
@@ -173,7 +173,7 @@ function DatasetsContent() {
               </div>
               <div className="h-1.5 overflow-hidden rounded-full bg-neutral-100">
                 <motion.div
-                  className="h-full rounded-full bg-neutral-900"
+                  className="h-full rounded-full bg-cyan-600"
                   animate={{ width: `${u.progress}%` }}
                   transition={{ duration: 0.2 }}
                 />
