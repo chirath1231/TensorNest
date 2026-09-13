@@ -15,6 +15,24 @@ volumes:
   minio_data:
 
 services:
+  # Not a running service — it exists so that `docker compose build` (and
+  # `up --build`) produces the tensornest-kernel image on the host daemon.
+  #
+  # The backend launches notebook kernels as *sibling* containers through the
+  # host's Docker socket, so the image has to exist on the host before a kernel
+  # can start. Without this, the Docker SDK falls back to pulling
+  # `tensornest-kernel:latest` from Docker Hub, which does not exist, and the
+  # notebook fails with "Failed to reach kernel".
+  #
+  # `command: ["true"]` overrides the Dockerfile's CMD so the container exits
+  # immediately after being built. Seeing it as "Exited (0)" is expected.
+  kernel-image:
+    build: ./kernel-image
+    image: ${KERNEL_IMAGE:-tensornest-kernel:latest}
+    command: ["true"]
+    restart: "no"
+    networks: [tensornest_default]
+
   postgres:
     image: postgres:16-alpine
     environment:
@@ -44,11 +62,19 @@ services:
       timeout: 5s
       retries: 10
 
-  # Local stand-in for Cloudflare R2. Same S3 API, so the backend code is
-  # identical in both environments — only the endpoint and keys change.
-  # Leave the S3_* block in .env empty to use this instead of R2.
+  # Optional local stand-in for Cloudflare R2, for working offline. Same S3
+  # API, so the backend code is identical either way — only the endpoint and
+  # keys change.
+  #
+  # Not started by default, because the normal setup points S3_* at R2 in .env.
+  # To use it instead:  comment out the S3_* block in .env, then
+  #   docker compose --profile local-storage up -d
+  #
+  # Image comes from MinIO's own registry: Docker Hub no longer serves a
+  # `minio/minio:latest` tag, so the docker.io reference fails to pull.
   minio:
-    image: minio/minio:latest
+    profiles: ["local-storage"]
+    image: quay.io/minio/minio:latest
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-tensornest}
@@ -93,8 +119,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      minio:
-        condition: service_healthy
     networks: [tensornest_default]
 
   worker:
@@ -118,8 +142,6 @@ services:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_healthy
-      minio:
         condition: service_healthy
     networks: [tensornest_default]
 

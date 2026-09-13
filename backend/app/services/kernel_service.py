@@ -5,7 +5,8 @@ from datetime import datetime, timedelta, timezone
 
 import docker
 import httpx
-from docker.errors import NotFound
+from docker.errors import ImageNotFound, NotFound
+from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -45,6 +46,20 @@ async def _create_session(db: AsyncSession, notebook: Notebook) -> KernelSession
 
     def _run() -> str:
         client = _client()
+        # containers.run() silently falls back to pulling when the image is
+        # missing locally, and tensornest-kernel is built, never published — so
+        # the pull fails with an unhelpful "pull access denied". Check first and
+        # say what actually needs doing.
+        try:
+            client.images.get(settings.kernel_image)
+        except ImageNotFound:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=(
+                    f"Kernel image '{settings.kernel_image}' is not built. "
+                    f"Run: docker compose build kernel-image"
+                ),
+            ) from None
         client.containers.run(
             settings.kernel_image,
             command=[

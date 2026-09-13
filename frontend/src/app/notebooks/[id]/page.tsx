@@ -153,14 +153,17 @@ function NotebookEditorContent() {
         (count) => updateCell(cell.id, { execution_count: count })
       );
     } catch (err) {
+      // Prefer the server's explanation (e.g. "Kernel image is not built")
+      // over a generic connection message — it usually says what to fix.
+      const message = err instanceof Error ? err.message : "Failed to reach kernel";
       outputs.push({
         type: "error",
         ename: "ConnectionError",
-        evalue: err instanceof Error ? err.message : "Failed to reach kernel",
+        evalue: message,
         traceback: [],
       });
       updateCell(cell.id, { outputs: [...outputs] });
-      toast.error("Failed to reach kernel");
+      toast.error(message);
     }
   }
 
