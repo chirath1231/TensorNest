@@ -9,17 +9,28 @@ from app.core.db import async_session_maker
 from app.models.job import Job, JobCheckpoint
 from app.providers.base import JobRunHandle
 from app.providers.local_docker import LocalDockerProvider
+from app.providers.modal_gpu import ModalGPUProvider
 from app.services import job_artifacts
 
 logger = logging.getLogger(__name__)
 
 PROVIDERS = {
     "local_cpu": LocalDockerProvider(),
+    "modal_gpu": ModalGPUProvider(),
 }
 
 POLL_INTERVAL_SECONDS = 3
 LOG_UPLOAD_INTERVAL_SECONDS = 15
 MAX_RUNTIME_SECONDS = 60 * 60  # 1 hour safety cap for the local CPU provider
+
+
+def job_workspace(job: Job) -> str:
+    """Workspace path for a reattached run.
+
+    Both providers derive their real paths from the job id rather than reading
+    this field, so it exists for logging and future providers that may need it.
+    """
+    return f"jobs/{job.id}"
 
 
 async def run_job(ctx: dict, job_id: str) -> None:
@@ -39,21 +50,32 @@ async def run_job(ctx: dict, job_id: str) -> None:
             return
 
         job.status = "running"
-        job.started_at = datetime.now(timezone.utc)
+        if job.started_at is None:
+            job.started_at = datetime.now(timezone.utc)
         await db.commit()
 
-        try:
-            run_handle = await provider.submit_job(job.id, job.script_source)
-            job.container_id = run_handle.container_id
-            await db.commit()
-        except Exception as exc:  # noqa: BLE001
-            job.status = "failed"
-            job.error_message = str(exc)
-            job.finished_at = datetime.now(timezone.utc)
-            await db.commit()
-            return
-
-        handle = JobRunHandle(container_id=run_handle.container_id, workspace_path=run_handle.workspace_path)
+        if job.container_id:
+            # This task is being retried — the worker was restarted, redeployed,
+            # or crashed while the run was in flight. The run itself is owned by
+            # the provider's scheduler, not by this process, so reattach to it.
+            # Submitting again would start a second GPU sandbox and orphan the
+            # first, which costs real money and loses the run we were tracking.
+            handle = JobRunHandle(container_id=job.container_id, workspace_path=job_workspace(job))
+            logger.info("Reattached to existing run %s for job %s", job.container_id, job.id)
+        else:
+            try:
+                run_handle = await provider.submit_job(job.id, job.script_source)
+                job.container_id = run_handle.container_id
+                await db.commit()
+            except Exception as exc:  # noqa: BLE001
+                job.status = "failed"
+                job.error_message = str(exc)
+                job.finished_at = datetime.now(timezone.utc)
+                await db.commit()
+                return
+            handle = JobRunHandle(
+                container_id=run_handle.container_id, workspace_path=run_handle.workspace_path
+            )
         elapsed = 0
         final_state = "failed"
         logs = ""

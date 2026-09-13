@@ -44,6 +44,14 @@ export interface Job {
   finished_at: string | null;
 }
 
+export type ProviderType = "local_cpu" | "modal_gpu";
+
+export interface Checkpoint {
+  name: string;
+  size: number;
+  modified: string;
+}
+
 export interface FileRecord {
   id: string;
   filename: string;

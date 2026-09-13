@@ -34,6 +34,22 @@ class Settings(BaseSettings):
     # without being proxied through this API.
     presigned_url_ttl_seconds: int = 3600
 
+    # --- Modal (remote GPU provider) -------------------------------------
+    # Tokens come from modal.com > Settings > API Tokens. The Modal client
+    # reads MODAL_TOKEN_ID / MODAL_TOKEN_SECRET from the environment, which
+    # takes precedence over any ~/.modal.toml, so these are all it needs.
+    modal_token_id: str = ""
+    modal_token_secret: str = ""
+    modal_app_name: str = "tensornest"
+    modal_volume_name: str = "tensornest-jobs"
+    # Modal GPU type: "T4", "L4", "A10G", "L40S", "A100", "H100", or "any".
+    # T4 is the cheapest, so the $30/month free credit goes furthest there.
+    modal_gpu: str = "T4"
+    # Hard ceiling Modal enforces is 24h; keep the default well under it so a
+    # runaway job cannot burn the whole month's credit.
+    modal_timeout_seconds: int = 3600
+    modal_pip_packages: list[str] = ["torch", "numpy", "pandas", "scikit-learn"]
+
     storage_root: str = "/storage"
     # Name of the Docker volume mounted at storage_root. The backend and worker
     # ask the *host's* daemon to start sibling job containers, so those

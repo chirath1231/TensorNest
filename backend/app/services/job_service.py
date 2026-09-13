@@ -27,13 +27,24 @@ async def get_job(db: AsyncSession, owner: User, job_id: UUID) -> Job:
 
 
 async def create_job(db: AsyncSession, owner: User, payload: JobCreateRequest) -> Job:
+    # Imported here rather than at module scope: tasks imports the providers,
+    # which import this package, so a top-level import would be circular.
+    from app.workers.tasks import PROVIDERS
+
+    if payload.provider_type not in PROVIDERS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unknown provider_type '{payload.provider_type}'. "
+            f"Available: {', '.join(sorted(PROVIDERS))}",
+        )
+
     job = Job(
         owner_id=owner.id,
         notebook_id=payload.notebook_id,
         name=payload.name,
         script_source=payload.script_source,
         status="queued",
-        provider_type="local_cpu",
+        provider_type=payload.provider_type,
     )
     db.add(job)
     await db.commit()

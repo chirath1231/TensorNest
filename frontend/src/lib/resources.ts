@@ -1,6 +1,6 @@
 import { apiFetch, API_BASE_URL, ApiError } from "./api";
 import { getAccessToken } from "./auth";
-import type { FileRecord, Job, Notebook, NotebookSummary } from "./types";
+import type { Checkpoint, FileRecord, Job, Notebook, NotebookSummary, ProviderType } from "./types";
 
 export const notebooksApi = {
   list: () => apiFetch<NotebookSummary[]>("/notebooks"),
@@ -20,10 +20,18 @@ export const notebooksApi = {
 export const jobsApi = {
   list: () => apiFetch<Job[]>("/jobs"),
   get: (id: string) => apiFetch<Job>(`/jobs/${id}`),
-  create: (payload: { name: string; script_source: string; notebook_id?: string | null }) =>
-    apiFetch<Job>("/jobs", { method: "POST", body: JSON.stringify(payload) }),
+  create: (payload: {
+    name: string;
+    script_source: string;
+    notebook_id?: string | null;
+    provider_type?: ProviderType;
+  }) => apiFetch<Job>("/jobs", { method: "POST", body: JSON.stringify(payload) }),
   logs: (id: string) => apiFetch<{ logs: string }>(`/jobs/${id}/logs`),
-  checkpoints: (id: string) => apiFetch<{ checkpoints: string[] }>(`/jobs/${id}/checkpoints`),
+  checkpoints: (id: string) => apiFetch<{ checkpoints: Checkpoint[] }>(`/jobs/${id}/checkpoints`),
+  checkpointUrl: (id: string, name: string) =>
+    apiFetch<{ url: string; filename: string }>(
+      `/jobs/${id}/checkpoints/${encodeURIComponent(name)}/download`
+    ),
   cancel: (id: string) => apiFetch<Job>(`/jobs/${id}/cancel`, { method: "POST" }),
 };
 

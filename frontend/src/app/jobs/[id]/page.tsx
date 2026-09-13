@@ -10,7 +10,13 @@ import { NavBar } from "@/components/NavBar";
 import { JobStatusBadge } from "@/components/jobs/JobStatusBadge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { jobsApi } from "@/lib/resources";
-import type { Job } from "@/lib/types";
+import type { Checkpoint, Job } from "@/lib/types";
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 const TERMINAL = new Set(["succeeded", "failed", "cancelled"]);
 
@@ -19,7 +25,7 @@ function JobDetailContent() {
   const router = useRouter();
   const [job, setJob] = useState<Job | null>(null);
   const [logs, setLogs] = useState("");
-  const [checkpoints, setCheckpoints] = useState<string[]>([]);
+  const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
   const [follow, setFollow] = useState(true);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const wasLive = useRef(false);
@@ -41,6 +47,17 @@ function JobDetailContent() {
     }
     wasLive.current = !TERMINAL.has(jobData.status);
   }, [params.id]);
+
+  async function downloadCheckpoint(name: string) {
+    try {
+      // The API returns a short-lived presigned URL so the file comes straight
+      // from the bucket rather than being proxied through the backend.
+      const { url } = await jobsApi.checkpointUrl(params.id, name);
+      window.open(url, "_blank", "noopener");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to get download link");
+    }
+  }
 
   useEffect(() => {
     refresh();
@@ -192,14 +209,24 @@ function JobDetailContent() {
               <AnimatePresence initial={false}>
                 {checkpoints.map((c, i) => (
                   <motion.li
-                    key={c}
+                    key={c.name}
                     initial={{ opacity: 0, x: -6 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.02 }}
                     className="flex items-center gap-2 px-3 py-2 text-sm"
                   >
-                    <FileArchive className="h-3.5 w-3.5 text-[#e6c163]" />
-                    {c}
+                    <FileArchive className="h-3.5 w-3.5 shrink-0 text-[#e6c163]" />
+                    <span className="truncate">{c.name}</span>
+                    <span className="ml-auto shrink-0 text-xs tabular-nums text-[#e6c163]/70">
+                      {formatBytes(c.size)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => downloadCheckpoint(c.name)}
+                      className="shrink-0 text-xs text-cyan-600 underline-offset-2 transition hover:underline"
+                    >
+                      Download
+                    </button>
                   </motion.li>
                 ))}
               </AnimatePresence>
