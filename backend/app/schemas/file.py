@@ -12,3 +12,11 @@ class FileResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class FileDownloadResponse(BaseModel):
+    """A presigned bucket URL. Short-lived, so it is fetched per download
+    rather than stored alongside the file record."""
+
+    url: str
+    filename: str

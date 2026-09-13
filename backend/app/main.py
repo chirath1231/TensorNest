@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -6,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import auth, files, jobs, kernels, notebooks
 from app.core.config import get_settings
+from app.core.storage import ensure_bucket
 from app.services.kernel_service import reap_idle_sessions
 
 settings = get_settings()
@@ -15,6 +17,8 @@ scheduler = AsyncIOScheduler()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # MinIO starts with an empty volume locally; on R2 this is a cheap HEAD.
+    await asyncio.to_thread(ensure_bucket)
     scheduler.add_job(reap_idle_sessions, "interval", minutes=1, id="reap_idle_kernels")
     scheduler.start()
     yield

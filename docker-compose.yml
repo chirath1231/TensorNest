@@ -1,24 +1,34 @@
+# Every value below reads from the project-root .env file, with a working
+# default after ":-". So `docker compose up` works on a fresh clone with no
+# .env at all, and a teammate whose Postgres user, database name or host ports
+# differ only has to edit .env — never this file.
+#
+# Note: Compose uses .env for ${...} substitution here, AND passes it into the
+# backend/worker containers via `env_file:`. Both read the same file.
+
 networks:
   tensornest_default:
-    name: tensornest_default
+    name: ${DOCKER_NETWORK:-tensornest_default}
 
 volumes:
   postgres_data:
+  minio_data:
 
 services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: tensornest
-      POSTGRES_PASSWORD: chirath123
-      POSTGRES_DB: tensernest
+      POSTGRES_USER: ${POSTGRES_USER:-tensornest}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tensornest}
+      POSTGRES_DB: ${POSTGRES_DB:-tensornest}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     networks: [tensornest_default]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U tensornest -d tensernest"]
+      test:
+        ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tensornest} -d ${POSTGRES_DB:-tensornest}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -26,10 +36,31 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6380:6379"
+      - "${REDIS_PORT:-6380}:6379"
     networks: [tensornest_default]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Local stand-in for Cloudflare R2. Same S3 API, so the backend code is
+  # identical in both environments — only the endpoint and keys change.
+  # Leave the S3_* block in .env empty to use this instead of R2.
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-tensornest}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-tensornest123}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"       # S3 API
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"   # web console
+    networks: [tensornest_default]
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -38,18 +69,31 @@ services:
     build: ./backend
     env_file: .env
     environment:
+      # Built from the three POSTGRES_* values so the app and the database
+      # container can never disagree about user, password or database name.
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-tensornest}:${POSTGRES_PASSWORD:-tensornest}@postgres:5432/${POSTGRES_DB:-tensornest}
+      # Service names and in-container paths, not host values — these are fixed
+      # by the compose network and the volume mount below.
       REDIS_URL: redis://redis:6379/0
       STORAGE_ROOT: /storage
-      DOCKER_NETWORK: tensornest_default
+      DOCKER_NETWORK: ${DOCKER_NETWORK:-tensornest_default}
+      # Falls back to the local MinIO bucket whenever .env leaves these unset.
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-http://minio:9000}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-tensornest}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-tensornest123}
+      S3_BUCKET: ${S3_BUCKET:-tensornest}
+      S3_REGION: ${S3_REGION:-auto}
     volumes:
       - ./storage:/storage
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT:-8000}:8000"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     networks: [tensornest_default]
 
@@ -58,9 +102,15 @@ services:
     command: ["arq", "app.workers.worker_settings.WorkerSettings"]
     env_file: .env
     environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-tensornest}:${POSTGRES_PASSWORD:-tensornest}@postgres:5432/${POSTGRES_DB:-tensornest}
       REDIS_URL: redis://redis:6379/0
       STORAGE_ROOT: /storage
-      DOCKER_NETWORK: tensornest_default
+      DOCKER_NETWORK: ${DOCKER_NETWORK:-tensornest_default}
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-http://minio:9000}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-tensornest}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-tensornest123}
+      S3_BUCKET: ${S3_BUCKET:-tensornest}
+      S3_REGION: ${S3_REGION:-auto}
     volumes:
       - ./storage:/storage
       - /var/run/docker.sock:/var/run/docker.sock
@@ -69,14 +119,18 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      minio:
+        condition: service_healthy
     networks: [tensornest_default]
 
   frontend:
     build: ./frontend
     environment:
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+      # Read by the browser, so it must be a URL the *host* can reach — hence
+      # localhost and BACKEND_PORT rather than the `backend` service name.
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT:-3000}:3000"
     depends_on:
       - backend
     networks: [tensornest_default]

@@ -17,6 +17,23 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
 
+    # --- Object storage (S3-compatible) ---------------------------------
+    # User uploads live in a bucket, not on this host's disk, because the GPU
+    # providers that run jobs (Modal first) execute on machines that cannot see
+    # this filesystem — they can only fetch a dataset over the network.
+    # Defaults below point at the MinIO container in docker-compose; production
+    # points them at Cloudflare R2. Same S3 API either way, so only these five
+    # values change between environments.
+    s3_endpoint_url: str = "http://minio:9000"
+    s3_access_key_id: str = "tensornest"
+    s3_secret_access_key: str = "tensornest123"
+    s3_bucket: str = "tensornest"
+    s3_region: str = "auto"  # R2 requires the literal "auto"
+    # Downloads are handed out as time-limited presigned URLs so that bytes go
+    # straight from the bucket to the client (or to a training container)
+    # without being proxied through this API.
+    presigned_url_ttl_seconds: int = 3600
+
     storage_root: str = "/storage"
     # Absolute path on the Docker *host* that maps to storage_root above. Needed
     # because the backend/worker containers ask the host's Docker daemon to spin
