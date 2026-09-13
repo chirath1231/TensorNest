@@ -48,3 +48,14 @@ class ComputeProvider(ABC):
     @abstractmethod
     async def cancel(self, handle: JobRunHandle) -> None:
         """Terminate a running job."""
+
+    @abstractmethod
+    async def collect_artifacts(self, job_id: UUID, handle: JobRunHandle) -> list[str]:
+        """Copy everything the run produced into the object bucket, returning
+        the checkpoint names collected.
+
+        Only the provider knows where a run's files physically live — a local
+        Docker volume here, a Modal Volume for a cloud provider — so bridging
+        that location to shared storage belongs behind this interface rather
+        than in the worker that calls it.
+        """

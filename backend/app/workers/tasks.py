@@ -1,23 +1,24 @@
 import asyncio
-import os
+import logging
 from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy import select
 
-from app.core.config import get_settings
 from app.core.db import async_session_maker
-from app.models.job import Job
+from app.models.job import Job, JobCheckpoint
 from app.providers.base import JobRunHandle
 from app.providers.local_docker import LocalDockerProvider
+from app.services import job_artifacts
 
-settings = get_settings()
+logger = logging.getLogger(__name__)
 
 PROVIDERS = {
     "local_cpu": LocalDockerProvider(),
 }
 
 POLL_INTERVAL_SECONDS = 3
+LOG_UPLOAD_INTERVAL_SECONDS = 15
 MAX_RUNTIME_SECONDS = 60 * 60  # 1 hour safety cap for the local CPU provider
 
 
@@ -55,33 +56,65 @@ async def run_job(ctx: dict, job_id: str) -> None:
         handle = JobRunHandle(container_id=run_handle.container_id, workspace_path=run_handle.workspace_path)
         elapsed = 0
         final_state = "failed"
+        logs = ""
+        since_log_upload = 0
         while elapsed < MAX_RUNTIME_SECONDS:
             await asyncio.sleep(POLL_INTERVAL_SECONDS)
             elapsed += POLL_INTERVAL_SECONDS
+            since_log_upload += POLL_INTERVAL_SECONDS
 
             status_result = await provider.get_status(handle)
             logs = await provider.stream_logs(handle)
-            _write_logs(job.id, logs)
+
+            # Snapshot to the bucket periodically rather than every poll: a
+            # long run would otherwise rewrite the whole log thousands of times.
+            # The final write below is what guarantees completeness.
+            if since_log_upload >= LOG_UPLOAD_INTERVAL_SECONDS:
+                since_log_upload = 0
+                await _safe_put_logs(job_uuid, logs)
 
             if status_result.state != "running":
                 final_state = status_result.state
                 break
         else:
             await provider.cancel(handle)
+            logs = await provider.stream_logs(handle)
             final_state = "failed"
+
+        # Persist the complete log and the run's outputs before the container is
+        # reaped — after this point the bucket is the only copy.
+        await _safe_put_logs(job_uuid, logs)
+        checkpoint_names = await _safe_collect(provider, job_uuid, handle)
 
         result = await db.execute(select(Job).where(Job.id == job_uuid))
         job = result.scalar_one_or_none()
         if job is None:
             return
+        for name in checkpoint_names:
+            db.add(
+                JobCheckpoint(
+                    job_id=job.id,
+                    path=job_artifacts.checkpoint_key(job.id, name),
+                    metrics={},
+                )
+            )
         job.status = final_state
         job.progress = 1.0 if final_state == "succeeded" else job.progress
         job.finished_at = datetime.now(timezone.utc)
         await db.commit()
 
 
-def _write_logs(job_id: UUID, logs: str) -> None:
-    job_dir = os.path.join(settings.storage_root, "jobs", str(job_id))
-    os.makedirs(job_dir, exist_ok=True)
-    with open(os.path.join(job_dir, "logs.txt"), "w", encoding="utf-8") as f:
-        f.write(logs)
+async def _safe_put_logs(job_id: UUID, logs: str) -> None:
+    """Never let a storage hiccup fail an otherwise-successful job."""
+    try:
+        await job_artifacts.put_logs(job_id, logs)
+    except Exception:  # noqa: BLE001
+        logger.exception("Failed to upload logs for job %s", job_id)
+
+
+async def _safe_collect(provider, job_id: UUID, handle: JobRunHandle) -> list[str]:
+    try:
+        return await provider.collect_artifacts(job_id, handle)
+    except Exception:  # noqa: BLE001
+        logger.exception("Failed to collect artifacts for job %s", job_id)
+        return []

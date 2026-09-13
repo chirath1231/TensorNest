@@ -7,8 +7,14 @@ from docker.errors import NotFound
 
 from app.core.config import get_settings
 from app.providers.base import ComputeProvider, JobRunHandle, JobStatus
+from app.services import job_artifacts
 
 settings = get_settings()
+
+
+def _read_file(path: str) -> bytes:
+    with open(path, "rb") as f:
+        return f.read()
 
 
 def _client() -> docker.DockerClient:
@@ -16,11 +22,9 @@ def _client() -> docker.DockerClient:
 
 
 def _job_dir(job_id: UUID) -> str:
+    """Path to a job's workspace. Identical inside this container and inside the
+    job container, because both mount the same named volume at storage_root."""
     return os.path.join(settings.storage_root, "jobs", str(job_id))
-
-
-def _job_host_dir(job_id: UUID) -> str:
-    return os.path.join(settings.storage_host_root, "jobs", str(job_id))
 
 
 class LocalDockerProvider(ComputeProvider):
@@ -37,16 +41,16 @@ class LocalDockerProvider(ComputeProvider):
         with open(script_path, "w", encoding="utf-8") as f:
             f.write(script_source)
 
-        host_dir = _job_host_dir(job_id)
-
         def _run() -> str:
             client = _client()
             container = client.containers.run(
                 settings.kernel_image,
-                command=["python", "/workspace/job.py"],
-                working_dir="/workspace",
-                environment={"CHECKPOINT_DIR": "/workspace/checkpoints"},
-                volumes={host_dir: {"bind": "/workspace", "mode": "rw"}},
+                command=["python", os.path.join(job_dir, "job.py")],
+                working_dir=job_dir,
+                environment={"CHECKPOINT_DIR": os.path.join(job_dir, "checkpoints")},
+                volumes={
+                    settings.storage_volume: {"bind": settings.storage_root, "mode": "rw"}
+                },
                 nano_cpus=int(settings.job_cpu_limit * 1e9),
                 mem_limit=settings.job_memory_limit,
                 network_disabled=True,
@@ -98,3 +102,21 @@ class LocalDockerProvider(ComputeProvider):
                 pass
 
         await asyncio.to_thread(_stop)
+
+    async def collect_artifacts(self, job_id: UUID, handle: JobRunHandle) -> list[str]:
+        """Upload the job's checkpoint directory from the shared volume into the
+        bucket. The volume is visible to this process, so this is a plain read;
+        a cloud provider would instead pull from wherever its runtime wrote."""
+        checkpoint_dir = os.path.join(_job_dir(job_id), "checkpoints")
+        if not os.path.isdir(checkpoint_dir):
+            return []
+
+        collected: list[str] = []
+        for name in sorted(os.listdir(checkpoint_dir)):
+            full_path = os.path.join(checkpoint_dir, name)
+            if not os.path.isfile(full_path):
+                continue
+            data = await asyncio.to_thread(_read_file, full_path)
+            await job_artifacts.put_checkpoint(job_id, name, data)
+            collected.append(name)
+        return collected

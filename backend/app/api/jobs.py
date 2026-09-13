@@ -40,7 +40,7 @@ async def get_job_logs(
     job_id: UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
 ) -> dict:
     await job_service.get_job(db, current_user, job_id)  # ownership check
-    return {"logs": job_service.get_logs(job_id)}
+    return {"logs": await job_service.get_logs(job_id)}
 
 
 @router.get("/{job_id}/checkpoints")
@@ -48,7 +48,20 @@ async def get_job_checkpoints(
     job_id: UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
 ) -> dict:
     await job_service.get_job(db, current_user, job_id)  # ownership check
-    return {"checkpoints": job_service.list_checkpoints(job_id)}
+    return {"checkpoints": await job_service.list_checkpoints(job_id)}
+
+
+@router.get("/{job_id}/checkpoints/{name}/download")
+async def download_job_checkpoint(
+    job_id: UUID,
+    name: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """Presigned URL for one checkpoint, so a model file downloads straight
+    from the bucket instead of being proxied through this API."""
+    await job_service.get_job(db, current_user, job_id)  # ownership check
+    return {"url": await job_service.checkpoint_download_url(job_id, name), "filename": name}
 
 
 @router.post("/{job_id}/cancel", response_model=JobResponse)

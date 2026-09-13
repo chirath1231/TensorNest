@@ -13,6 +13,11 @@ networks:
 volumes:
   postgres_data:
   minio_data:
+  # Shared job workspace. Explicitly named (rather than letting Compose prefix
+  # it with the project name) because the backend passes this exact name to the
+  # host Docker daemon when it starts a sibling job container.
+  tensornest_storage:
+    name: ${STORAGE_VOLUME:-tensornest_storage}
 
 services:
   # Not a running service — it exists so that `docker compose build` (and
@@ -110,7 +115,7 @@ services:
       S3_BUCKET: ${S3_BUCKET:-tensornest}
       S3_REGION: ${S3_REGION:-auto}
     volumes:
-      - ./storage:/storage
+      - tensornest_storage:/storage
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - "${BACKEND_PORT:-8000}:8000"
@@ -136,7 +141,7 @@ services:
       S3_BUCKET: ${S3_BUCKET:-tensornest}
       S3_REGION: ${S3_REGION:-auto}
     volumes:
-      - ./storage:/storage
+      - tensornest_storage:/storage
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       postgres:

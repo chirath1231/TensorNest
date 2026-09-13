@@ -1,19 +1,16 @@
-import os
 from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import get_settings
 from app.core.redis import get_arq_pool
 from app.models.job import Job
 from app.models.user import User
 from app.providers.base import JobRunHandle
 from app.providers.local_docker import LocalDockerProvider
 from app.schemas.job import JobCreateRequest
-
-settings = get_settings()
+from app.services import job_artifacts
 
 
 async def list_jobs(db: AsyncSession, owner: User) -> list[Job]:
@@ -48,19 +45,19 @@ async def create_job(db: AsyncSession, owner: User, payload: JobCreateRequest) -
     return job
 
 
-def get_logs(job_id: UUID) -> str:
-    log_path = os.path.join(settings.storage_root, "jobs", str(job_id), "logs.txt")
-    if not os.path.exists(log_path):
-        return ""
-    with open(log_path, "r", encoding="utf-8") as f:
-        return f.read()
+async def get_logs(job_id: UUID) -> str:
+    """Read the log from the bucket. While a job runs the worker snapshots it
+    there every few seconds, so this lags slightly behind live output but is
+    readable from anywhere — including after the container is gone."""
+    return await job_artifacts.get_logs(job_id)
 
 
-def list_checkpoints(job_id: UUID) -> list[str]:
-    checkpoint_dir = os.path.join(settings.storage_root, "jobs", str(job_id), "checkpoints")
-    if not os.path.isdir(checkpoint_dir):
-        return []
-    return sorted(os.listdir(checkpoint_dir))
+async def list_checkpoints(job_id: UUID) -> list[dict]:
+    return await job_artifacts.list_checkpoints(job_id)
+
+
+async def checkpoint_download_url(job_id: UUID, name: str) -> str:
+    return await job_artifacts.presigned_checkpoint_url(job_id, name)
 
 
 async def cancel_job(db: AsyncSession, owner: User, job_id: UUID) -> Job:

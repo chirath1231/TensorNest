@@ -35,12 +35,14 @@ class Settings(BaseSettings):
     presigned_url_ttl_seconds: int = 3600
 
     storage_root: str = "/storage"
-    # Absolute path on the Docker *host* that maps to storage_root above. Needed
-    # because the backend/worker containers ask the host's Docker daemon to spin
-    # up sibling containers (docker-outside-of-docker), and bind mounts for those
-    # sibling containers must be specified using host paths, not paths inside the
-    # backend container itself.
-    storage_host_root: str = "./storage"
+    # Name of the Docker volume mounted at storage_root. The backend and worker
+    # ask the *host's* daemon to start sibling job containers, so those
+    # containers cannot be given a path from inside this container — and a host
+    # bind path is not portable (it differs per machine, and Docker Desktop has
+    # to translate Windows paths). A named volume sidesteps both: every
+    # container mounts the same volume at the same path, so /storage/jobs/<id>
+    # means the same thing everywhere.
+    storage_volume: str = "tensornest_storage"
 
     docker_network: str = "tensornest_default"
     kernel_image: str = "tensornest-kernel:latest"
