@@ -58,6 +58,36 @@ class Settings(BaseSettings):
     modal_timeout_seconds: int = 3600
     modal_pip_packages: list[str] = ["torch", "numpy", "pandas", "scikit-learn"]
 
+    # --- Email notifications (SMTP) --------------------------------------
+    # Job outcomes are emailed because the whole point of running training
+    # off the browser session is that you can close the laptop — so the
+    # result has to reach you somewhere other than the tab you left.
+    #
+    # With Gmail, smtp_password must be a 16-character App Password
+    # (Google Account > Security > 2-Step Verification > App passwords).
+    # Google rejects the account password itself on SMTP, so a normal
+    # password fails authentication no matter how correct it looks.
+    #
+    # Leaving smtp_host empty disables email; the in-app notification
+    # centre still records everything.
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    # Gmail ignores a From that isn't the authenticated account, so this
+    # defaults to smtp_username rather than being separately required.
+    smtp_from_email: str = ""
+    smtp_from_name: str = "TensorNest"
+    # Port 587 opens in the clear and upgrades with STARTTLS; port 465
+    # expects TLS from the first byte. Anything else is server-specific.
+    smtp_use_ssl: bool = False
+    smtp_timeout_seconds: int = 20
+
+    # Base URL that links in notification emails point at. It is resolved
+    # in the recipient's mail client, not in a container, so localhost only
+    # works while you are reading mail on the machine running the stack.
+    frontend_base_url: str = "http://localhost:3000"
+
     storage_root: str = "/storage"
     # Name of the Docker volume mounted at storage_root. The backend and worker
     # ask the *host's* daemon to start sibling job containers, so those
@@ -78,6 +108,14 @@ class Settings(BaseSettings):
     job_memory_limit: str = "2g"
 
     cors_origins: list[str] = ["http://localhost:3000"]
+
+    @property
+    def email_enabled(self) -> bool:
+        return bool(self.smtp_host)
+
+    @property
+    def email_sender(self) -> str:
+        return self.smtp_from_email or self.smtp_username
 
 
 @lru_cache
