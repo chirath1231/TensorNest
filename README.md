@@ -153,6 +153,30 @@ The job form now offers **Modal GPU (Tesla T4)**.
 
 ---
 
+## Enabling email notifications (Gmail)
+
+The notification bell in the header always works. Email is what makes it useful for jobs that outlive your session — a run you started before closing the laptop reports its result without you watching a tab.
+
+Gmail requires an **App password**, not your account password. Google rejects the account password on SMTP no matter how correct it is, failing with `535 Username and Password not accepted`.
+
+1. Turn on [2-Step Verification](https://myaccount.google.com/signinoptions/two-step-verification) — App passwords do not exist without it.
+2. Create one at [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords). Choose **Mail** and any device name.
+3. Google shows 16 characters as `abcd efgh ijkl mnop`. Add to `.env` **with the spaces removed and no quotes**:
+   ```
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_USERNAME=you@gmail.com
+   SMTP_PASSWORD=abcdefghijklmnop
+   ```
+4. `docker compose up -d backend worker`
+5. Open the notification bell and click **Send a test email**. It reports the SMTP error directly if anything is wrong, rather than leaving it in the worker log.
+
+You are emailed when a job **starts running**, **finishes successfully**, and **fails**. Each event is sent at most once, including when a job is finalised by the reconciler after a restart.
+
+For a provider that wants implicit TLS rather than STARTTLS, set `SMTP_PORT=465` and `SMTP_USE_SSL=true`. Set `FRONTEND_BASE_URL` if the **View job** link in an email should point somewhere other than `http://localhost:3000`.
+
+---
+
 ## Using the platform
 
 ### Notebooks
@@ -223,6 +247,10 @@ Full interactive reference at **http://localhost:8000/docs**. Every route except
 | `GET` | `/jobs/{id}/checkpoints` | Checkpoint list with sizes |
 | `GET` | `/jobs/{id}/checkpoints/{name}/download` | Presigned checkpoint URL |
 | `POST` | `/jobs/{id}/cancel` | Cancel a running job |
+| `GET` | `/notifications` | Recent notifications, unread count, whether email is on |
+| `POST` | `/notifications/{id}/read` | Mark one notification read |
+| `POST` | `/notifications/read-all` | Mark every notification read |
+| `POST` | `/notifications/test-email` | Send a test email to the signed-in address |
 
 ---
 
