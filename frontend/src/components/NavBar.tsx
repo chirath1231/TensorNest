@@ -6,6 +6,7 @@ import { Database, LayoutGrid, LogOut, Play } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/lib/AuthContext";
 import { Wordmark } from "@/components/ui/Logo";
+import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -60,6 +61,7 @@ export function NavBar() {
         </div>
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          <NotificationCenter />
           <span className="hidden max-w-[14rem] truncate text-sm text-muted lg:inline">
             {user?.email}
           </span>

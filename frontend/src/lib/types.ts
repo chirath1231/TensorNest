@@ -59,3 +59,21 @@ export interface FileRecord {
   content_type: string;
   created_at: string;
 }
+
+export type NotificationEvent = "job_started" | "job_succeeded" | "job_failed";
+
+export interface AppNotification {
+  id: string;
+  event: NotificationEvent;
+  title: string;
+  body: string;
+  job_id: string | null;
+  read_at: string | null;
+  created_at: string;
+}
+
+export interface NotificationList {
+  items: AppNotification[];
+  unread_count: number;
+  email_enabled: boolean;
+}

@@ -1,6 +1,15 @@
 import { apiFetch, API_BASE_URL, ApiError } from "./api";
 import { getAccessToken } from "./auth";
-import type { Checkpoint, FileRecord, Job, Notebook, NotebookSummary, ProviderType } from "./types";
+import type {
+  AppNotification,
+  Checkpoint,
+  FileRecord,
+  Job,
+  Notebook,
+  NotebookSummary,
+  NotificationList,
+  ProviderType,
+} from "./types";
 
 export const notebooksApi = {
   list: () => apiFetch<NotebookSummary[]>("/notebooks"),
@@ -73,4 +82,13 @@ export const filesApi = {
   downloadUrl: (id: string) =>
     apiFetch<{ url: string; filename: string }>(`/files/${id}/download`),
   remove: (id: string) => apiFetch<void>(`/files/${id}`, { method: "DELETE" }),
+};
+
+export const notificationsApi = {
+  list: (limit = 30) => apiFetch<NotificationList>(`/notifications?limit=${limit}`),
+  markRead: (id: string) =>
+    apiFetch<AppNotification>(`/notifications/${id}/read`, { method: "POST" }),
+  markAllRead: () => apiFetch<{ updated: number }>("/notifications/read-all", { method: "POST" }),
+  sendTestEmail: () =>
+    apiFetch<{ sent_to: string }>("/notifications/test-email", { method: "POST" }),
 };
