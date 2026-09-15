@@ -1,9 +1,17 @@
+from arq import func
+
 from app.core.redis import redis_settings
-from app.workers.tasks import MAX_RUNTIME_SECONDS, run_job
+from app.workers.tasks import MAX_RUNTIME_SECONDS, run_job, send_notification_email
 
 
 class WorkerSettings:
-    functions = [run_job]
+    functions = [
+        run_job,
+        # The class-level max_tries/job_timeout below are sized for a run that
+        # lasts an hour and is cheap to retry. Neither fits an email: retrying
+        # a wrong App Password fifty times just delays the giving up.
+        func(send_notification_email, max_tries=4, timeout=120),
+    ]
     redis_settings = redis_settings()
     max_jobs = 4
 

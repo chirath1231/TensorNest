@@ -23,7 +23,7 @@ from sqlalchemy import select
 from app.core.db import async_session_maker
 from app.models.job import Job, JobCheckpoint
 from app.providers.base import JobRunHandle
-from app.services import job_artifacts
+from app.services import job_artifacts, notification_service
 
 logger = logging.getLogger(__name__)
 
@@ -96,4 +96,8 @@ async def _reconcile_one(job_id) -> None:
         job.progress = 1.0 if status.state == "succeeded" else job.progress
         job.finished_at = datetime.now(timezone.utc)
         await db.commit()
+        # This is the path that runs when the machine was shut down mid-run, so
+        # it is the one that has to send the outcome email — there is no
+        # tracking task left alive to do it.
+        await notification_service.notify_job_status(db, job)
         logger.info("Reconciled job %s -> %s (%d checkpoints)", job.id, status.state, len(collected))

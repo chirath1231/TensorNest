@@ -10,7 +10,7 @@ from app.models.job import Job, JobCheckpoint
 from app.providers.base import JobRunHandle
 from app.providers.local_docker import LocalDockerProvider
 from app.providers.modal_gpu import ModalGPUProvider
-from app.services import job_artifacts
+from app.services import job_artifacts, notification_service
 
 logger = logging.getLogger(__name__)
 
@@ -47,12 +47,14 @@ async def run_job(ctx: dict, job_id: str) -> None:
             job.error_message = f"Unknown provider_type: {job.provider_type}"
             job.finished_at = datetime.now(timezone.utc)
             await db.commit()
+            await notification_service.notify_job_status(db, job)
             return
 
         job.status = "running"
         if job.started_at is None:
             job.started_at = datetime.now(timezone.utc)
         await db.commit()
+        await notification_service.notify_job_status(db, job)
 
         if job.container_id:
             # This task is being retried — the worker was restarted, redeployed,
@@ -72,6 +74,7 @@ async def run_job(ctx: dict, job_id: str) -> None:
                 job.error_message = str(exc)
                 job.finished_at = datetime.now(timezone.utc)
                 await db.commit()
+                await notification_service.notify_job_status(db, job)
                 return
             handle = JobRunHandle(
                 container_id=run_handle.container_id, workspace_path=run_handle.workspace_path
@@ -124,6 +127,18 @@ async def run_job(ctx: dict, job_id: str) -> None:
         job.progress = 1.0 if final_state == "succeeded" else job.progress
         job.finished_at = datetime.now(timezone.utc)
         await db.commit()
+        await notification_service.notify_job_status(db, job)
+
+
+async def send_notification_email(ctx: dict, notification_id: str) -> None:
+    """Deliver one notification email.
+
+    Queued rather than sent inline so that a slow mail server cannot hold up
+    recording a job's outcome. Failures raise, which is what lets arq retry
+    them — a mail server that is down for a minute should not silently cost
+    the user the one message telling them their training finished.
+    """
+    await notification_service.deliver(UUID(notification_id))
 
 
 async def _safe_put_logs(job_id: UUID, logs: str) -> None:
