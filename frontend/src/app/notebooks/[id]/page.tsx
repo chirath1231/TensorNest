@@ -177,7 +177,7 @@ function NotebookEditorContent() {
   }
 
   if (!notebook) {
-    return <div className="flex h-screen items-center justify-center text-sm text-[#e6c163]">Loading…</div>;
+    return <div className="flex h-screen items-center justify-center text-sm text-muted">Loading…</div>;
   }
 
   return (
