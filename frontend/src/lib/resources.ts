@@ -70,5 +70,7 @@ export const filesApi = {
       xhr.send(formData);
     });
   },
+  downloadUrl: (id: string) =>
+    apiFetch<{ url: string; filename: string }>(`/files/${id}/download`),
   remove: (id: string) => apiFetch<void>(`/files/${id}`, { method: "DELETE" }),
 };
