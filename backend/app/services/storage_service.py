@@ -15,7 +15,7 @@ import uuid
 from typing import BinaryIO
 
 from app.core.config import get_settings
-from app.core.storage import get_s3_client
+from app.core.storage import get_presign_client, get_s3_client
 
 settings = get_settings()
 
@@ -83,7 +83,7 @@ async def presigned_get_url(key: str, filename: str | None = None) -> str:
         params = {"Bucket": settings.s3_bucket, "Key": key}
         if filename:
             params["ResponseContentDisposition"] = f'attachment; filename="{filename}"'
-        return get_s3_client().generate_presigned_url(
+        return get_presign_client().generate_presigned_url(
             "get_object",
             Params=params,
             ExpiresIn=settings.presigned_url_ttl_seconds,

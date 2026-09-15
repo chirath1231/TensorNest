@@ -42,6 +42,29 @@ def get_s3_client() -> BaseClient:
     )
 
 
+@lru_cache
+def get_presign_client() -> BaseClient:
+    """Client used solely to sign download URLs.
+
+    Identical to get_s3_client() except for the endpoint, which must be the
+    one the *browser* can reach. Falls back to the internal client when no
+    public endpoint is configured (the R2 case, where they are the same).
+    """
+    if not settings.s3_public_endpoint_url:
+        return get_s3_client()
+    return boto3.client(
+        "s3",
+        endpoint_url=settings.s3_public_endpoint_url,
+        aws_access_key_id=settings.s3_access_key_id,
+        aws_secret_access_key=settings.s3_secret_access_key,
+        region_name=settings.s3_region,
+        config=Config(
+            signature_version="s3v4",
+            s3={"addressing_style": "path"},
+        ),
+    )
+
+
 def ensure_bucket() -> None:
     """Create the bucket if it is missing.
 

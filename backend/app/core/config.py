@@ -28,6 +28,14 @@ class Settings(BaseSettings):
     s3_access_key_id: str = "tensornest"
     s3_secret_access_key: str = "tensornest123"
     s3_bucket: str = "tensornest"
+    # Endpoint used only for *presigned* URLs, which are opened by a browser
+    # on the host rather than from inside this container. With local MinIO the
+    # two differ: the backend reaches it at http://minio:9000, but that name
+    # does not resolve outside Docker, so a URL signed for it is unopenable.
+    # The host header is part of the signature, so the URL has to be signed
+    # against the public name -- rewriting it afterwards invalidates it.
+    # Empty means "same as s3_endpoint_url", which is correct for R2.
+    s3_public_endpoint_url: str = ""
     s3_region: str = "auto"  # R2 requires the literal "auto"
     # Downloads are handed out as time-limited presigned URLs so that bytes go
     # straight from the bucket to the client (or to a training container)

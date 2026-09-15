@@ -110,6 +110,10 @@ services:
       DOCKER_NETWORK: ${DOCKER_NETWORK:-tensornest_default}
       # Falls back to the local MinIO bucket whenever .env leaves these unset.
       S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-http://minio:9000}
+      # Endpoint that presigned download URLs are signed against, i.e. one the
+      # browser can reach. Defaults to the R2 endpoint when S3_ENDPOINT_URL is
+      # set, and to the host-published MinIO port otherwise.
+      S3_PUBLIC_ENDPOINT_URL: ${S3_PUBLIC_ENDPOINT_URL:-${S3_ENDPOINT_URL:-http://localhost:${MINIO_API_PORT:-9000}}}
       S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-tensornest}
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-tensornest123}
       S3_BUCKET: ${S3_BUCKET:-tensornest}
@@ -124,6 +128,13 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      # The backend creates the bucket on startup and exits if storage is
+      # unreachable, so it must not boot before MinIO is serving. `required:
+      # false` keeps this a no-op when the local-storage profile is off and
+      # S3_* points at Cloudflare R2 instead.
+      minio:
+        condition: service_healthy
+        required: false
     networks: [tensornest_default]
 
   worker:
@@ -136,6 +147,10 @@ services:
       STORAGE_ROOT: /storage
       DOCKER_NETWORK: ${DOCKER_NETWORK:-tensornest_default}
       S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-http://minio:9000}
+      # Endpoint that presigned download URLs are signed against, i.e. one the
+      # browser can reach. Defaults to the R2 endpoint when S3_ENDPOINT_URL is
+      # set, and to the host-published MinIO port otherwise.
+      S3_PUBLIC_ENDPOINT_URL: ${S3_PUBLIC_ENDPOINT_URL:-${S3_ENDPOINT_URL:-http://localhost:${MINIO_API_PORT:-9000}}}
       S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-tensornest}
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-tensornest123}
       S3_BUCKET: ${S3_BUCKET:-tensornest}
@@ -148,6 +163,13 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      # The backend creates the bucket on startup and exits if storage is
+      # unreachable, so it must not boot before MinIO is serving. `required:
+      # false` keeps this a no-op when the local-storage profile is off and
+      # S3_* points at Cloudflare R2 instead.
+      minio:
+        condition: service_healthy
+        required: false
     networks: [tensornest_default]
 
   frontend:

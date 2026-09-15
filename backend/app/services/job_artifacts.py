@@ -18,7 +18,7 @@ from uuid import UUID
 from botocore.exceptions import ClientError
 
 from app.core.config import get_settings
-from app.core.storage import get_s3_client
+from app.core.storage import get_presign_client, get_s3_client
 
 settings = get_settings()
 
@@ -110,7 +110,7 @@ async def list_checkpoints(job_id: UUID) -> list[dict]:
 
 async def presigned_checkpoint_url(job_id: UUID, name: str) -> str:
     def _sign() -> str:
-        return get_s3_client().generate_presigned_url(
+        return get_presign_client().generate_presigned_url(
             "get_object",
             Params={
                 "Bucket": settings.s3_bucket,

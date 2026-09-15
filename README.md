@@ -118,7 +118,7 @@ Register an account, open **Jobs**, leave **Local CPU** selected and submit the 
 
 ## Enabling cloud storage (Cloudflare R2)
 
-Without this block, storage falls back to local MinIO — fine for development, but a remote GPU can't reach it.
+Without this block, storage falls back to the local MinIO container — fine for development, but a remote GPU can't reach it. MinIO sits behind the `local-storage` Compose profile, which `.env.example` enables via `COMPOSE_PROFILES=local-storage`. Once `S3_*` points at R2, delete that line so the container stops starting.
 
 1. In the Cloudflare dashboard, open **R2** and create a bucket (e.g. `tensornest`).
 2. Copy the **S3 API** URL from the bucket's settings, **removing the bucket name from the end**. You want exactly `https://<account-id>.r2.cloudflarestorage.com`.
