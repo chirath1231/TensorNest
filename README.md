@@ -295,7 +295,7 @@ This deletes all local data.
 
 **Registration returns 422 for a valid-looking email** — the validator rejects special-use domains such as `.local`, `.test` and `.invalid`. Use a real domain.
 
-**Port already in use** — change the matching `*_PORT` variable in `.env`. If you change `BACKEND_PORT`, update `NEXT_PUBLIC_API_BASE_URL` to match.
+**Port already in use** — change the matching `*_PORT` variable in `.env`. If you change `BACKEND_PORT`, update `NEXT_PUBLIC_API_BASE_URL` to match and rebuild the frontend (`docker compose up -d --build frontend`) — Next.js bakes `NEXT_PUBLIC_*` into the browser bundle at build time, so a restart alone will not pick it up.
 
 **A job shows `running` long after it finished** — the reconciler settles these within a minute of the backend running. Check `docker compose logs backend` for reconcile errors.
 

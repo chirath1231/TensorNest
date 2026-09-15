@@ -173,7 +173,12 @@ services:
     networks: [tensornest_default]
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        # Baked into the client bundle at build time (see frontend/Dockerfile).
+        # Change NEXT_PUBLIC_API_BASE_URL in .env and rebuild, not just restart.
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
     environment:
       # Read by the browser, so it must be a URL the *host* can reach — hence
       # localhost and BACKEND_PORT rather than the `backend` service name.
