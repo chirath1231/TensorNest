@@ -9,6 +9,7 @@ import type {
   NotebookSummary,
   NotificationList,
   ProviderType,
+  User,
 } from "./types";
 
 export const notebooksApi = {
@@ -82,6 +83,17 @@ export const filesApi = {
   downloadUrl: (id: string) =>
     apiFetch<{ url: string; filename: string }>(`/files/${id}/download`),
   remove: (id: string) => apiFetch<void>(`/files/${id}`, { method: "DELETE" }),
+};
+
+export const profileApi = {
+  update: (payload: { name: string; bio: string }) =>
+    apiFetch<User>("/users/me", { method: "PATCH", body: JSON.stringify(payload) }),
+  uploadAvatar: (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return apiFetch<User>("/users/me/avatar", { method: "POST", body: formData });
+  },
+  removeAvatar: () => apiFetch<User>("/users/me/avatar", { method: "DELETE" }),
 };
 
 export const notificationsApi = {
