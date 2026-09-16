@@ -88,6 +88,22 @@ class Settings(BaseSettings):
     # works while you are reading mail on the machine running the stack.
     frontend_base_url: str = "http://localhost:3000"
 
+    # --- In-container SDK ------------------------------------------------
+    # How a kernel or job container reaches this API to resolve a dataset.
+    # Containers on the Compose network reach it by service name; "localhost"
+    # inside a container is the container itself, so it can never be that.
+    internal_api_base_url: str = "http://backend:8000"
+    # A Modal sandbox runs on Modal's hardware and cannot see the Compose
+    # network at all, so remote jobs need a URL reachable from the internet —
+    # a tunnel while developing, or a real deployment. Empty means remote jobs
+    # fall back to the internal URL, where tn.load() will fail with a message
+    # saying exactly this.
+    public_api_base_url: str = ""
+    # Lifetime of the dataset-read token handed to a kernel. Long enough to
+    # outlive a working session; a kernel is reaped after 30 idle minutes
+    # anyway, and restarting it issues a fresh one.
+    sdk_token_hours: int = 12
+
     storage_root: str = "/storage"
     # Name of the Docker volume mounted at storage_root. The backend and worker
     # ask the *host's* daemon to start sibling job containers, so those
