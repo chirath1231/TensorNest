@@ -191,6 +191,16 @@ Notebooks are **session-bound by design** — for interactive work. Close the ta
 
 Drag files onto **Datasets**. Uploads stream directly to the bucket without being buffered in memory, so large files are safe. Downloads use short-lived presigned URLs straight from storage.
 
+### Importing a dataset from the web
+
+**Datasets → Import from web** searches Hugging Face, or takes a direct link to any CSV, Parquet or JSON file. Pick a file and it downloads into your bucket in the background — large datasets stream straight through, so nothing is held in memory.
+
+Each import records where it came from: the source, the original URL and the licence, shown on the dataset row. Data pulled off the web carries terms that a file on your disk does not, and a licence you have to go and look up later is one nobody looks up.
+
+A failed import keeps its row with the reason, and can be retried without finding the dataset again.
+
+Adding a catalogue means implementing `DatasetSource` in `backend/app/datasets/` and registering it — the same shape as adding a compute provider. No vendor SDKs are used; every supported catalogue has a plain REST API.
+
 ### Using a dataset in a notebook or job
 
 Both run with a `tensornest` module already importable:
@@ -276,6 +286,10 @@ Full interactive reference at **http://localhost:8000/docs**. Every route except
 | `GET` | `/sdk/tensornest.py` | The in-container client, served to kernels at startup |
 | `GET` | `/sdk/datasets` | Datasets visible to a kernel or job (container token) |
 | `GET` | `/sdk/datasets/resolve` | Presigned URL for one dataset, by filename or id |
+| `GET` | `/discover/search` | Search external catalogues for datasets |
+| `GET` | `/discover/describe` | One external dataset, with its importable files |
+| `POST` | `/discover/import` | Queue an import into your datasets |
+| `POST` | `/discover/import/{id}/retry` | Retry a failed import |
 
 ---
 
