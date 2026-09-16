@@ -45,6 +45,7 @@ async def create_job(db: AsyncSession, owner: User, payload: JobCreateRequest) -
         script_source=payload.script_source,
         status="queued",
         provider_type=payload.provider_type,
+        allow_network=payload.allow_network,
     )
     db.add(job)
     await db.commit()
