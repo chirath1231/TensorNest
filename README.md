@@ -233,6 +233,8 @@ Full interactive reference at **http://localhost:8000/docs**. Every route except
 | `POST` | `/auth/login` | Exchange credentials for tokens |
 | `POST` | `/auth/refresh` | Refresh an access token |
 | `GET` | `/auth/me` | Current user |
+| `GET` `PATCH` | `/users/me` | Read / edit your profile (display name, bio) |
+| `POST` `DELETE` | `/users/me/avatar` | Set / clear your profile picture |
 | `GET` `POST` | `/notebooks` | List / create notebooks |
 | `GET` `PATCH` `DELETE` | `/notebooks/{id}` | Read / update / delete a notebook |
 | `POST` | `/notebooks/{id}/export` | Write `.ipynb` to the bucket |
