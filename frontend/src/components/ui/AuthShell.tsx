@@ -1,7 +1,11 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { Loader2 } from "lucide-react";
+import { useAuth } from "@/lib/AuthContext";
 import { LogoMark } from "@/components/ui/Logo";
 import { LiquidGlassCard } from "@/components/ui/liquid-glass";
 
@@ -14,7 +18,13 @@ const POINTS = [
 /** Two-up frame shared by sign-in and register: the pitch on the left, the
  *  form inside a liquid-glass card on the right. Below `lg` the pitch is
  *  dropped rather than stacked — on a phone it would just push the form,
- *  the only thing the page is actually for, below the fold. */
+ *  the only thing the page is actually for, below the fold.
+ *
+ *  It also guards the flow the other way round from AuthGuard: these pages are
+ *  for people who are *not* signed in, so someone who still has a session is
+ *  sent on to the dashboard instead of being shown a sign-in form they have no
+ *  use for. Living here rather than in each page means any future auth screen
+ *  inherits it. */
 export function AuthShell({
   title,
   subtitle,
@@ -24,6 +34,22 @@ export function AuthShell({
   subtitle: string;
   children: ReactNode;
 }) {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && user) router.replace("/dashboard");
+  }, [loading, user, router]);
+
+  if (loading || user) {
+    return (
+      <div className="flex h-screen items-center justify-center gap-2 text-sm text-muted">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Loading…
+      </div>
+    );
+  }
+
   return (
     <main className="flex min-h-screen items-center justify-center px-5 py-12">
       {/* min-w-0 on the grid and its card column: grid and flex items default to
@@ -36,14 +62,17 @@ export function AuthShell({
           transition={{ duration: 0.5, ease: "easeOut" }}
           className="hidden lg:block"
         >
-          <span className="mb-7 flex items-center gap-3">
+          {/* The only way back out of the auth flow — without it, someone who
+              lands on /login from a bookmark has no route to the marketing
+              page at all. */}
+          <Link href="/" className="mb-7 flex w-fit items-center gap-3">
             <span className="block h-12 w-12 shrink-0">
               <LogoMark />
             </span>
             <span className="text-xl font-semibold tracking-tight text-slate-100">
               Tensor<span className="text-gradient">Nest</span>
             </span>
-          </span>
+          </Link>
           <h1 className="text-5xl font-semibold leading-[1.05] tracking-tight text-slate-50">
             Training that
             <br />
@@ -85,14 +114,14 @@ export function AuthShell({
           >
             <div className="p-6 sm:p-9">
               <div className="mb-7">
-                <span className="mb-5 flex items-center gap-2.5 lg:hidden">
+                <Link href="/" className="mb-5 flex w-fit items-center gap-2.5 lg:hidden">
                   <span className="block h-10 w-10 shrink-0">
                     <LogoMark />
                   </span>
                   <span className="text-lg font-semibold tracking-tight text-slate-100">
                     Tensor<span className="text-gradient">Nest</span>
                   </span>
-                </span>
+                </Link>
                 <h2 className="text-2xl font-semibold tracking-tight text-slate-50">{title}</h2>
                 <p className="mt-1.5 text-sm text-muted">{subtitle}</p>
               </div>
