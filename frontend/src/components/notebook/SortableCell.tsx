@@ -18,7 +18,7 @@ export function SortableCell({ id, children }: { id: string; children: React.Rea
       <button
         {...attributes}
         {...listeners}
-        className="absolute -left-6 top-3 hidden cursor-grab touch-none text-[#e6c163] transition hover:text-[#e6c163] group-hover/drag:block active:cursor-grabbing dark:text-[#e6c163] dark:hover:text-[#e6c163]"
+        className="absolute -left-7 top-3.5 hidden cursor-grab touch-none rounded p-1 text-slate-500 transition hover:bg-white/10 hover:text-slate-200 group-hover/drag:block active:cursor-grabbing"
         aria-label="Drag to reorder"
       >
         <GripVertical className="h-4 w-4" />

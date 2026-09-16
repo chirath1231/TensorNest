@@ -118,7 +118,7 @@ Register an account, open **Jobs**, leave **Local CPU** selected and submit the 
 
 ## Enabling cloud storage (Cloudflare R2)
 
-Without this block, storage falls back to local MinIO — fine for development, but a remote GPU can't reach it.
+Without this block, storage falls back to the local MinIO container — fine for development, but a remote GPU can't reach it. MinIO sits behind the `local-storage` Compose profile, which `.env.example` enables via `COMPOSE_PROFILES=local-storage`. Once `S3_*` points at R2, delete that line so the container stops starting.
 
 1. In the Cloudflare dashboard, open **R2** and create a bucket (e.g. `tensornest`).
 2. Copy the **S3 API** URL from the bucket's settings, **removing the bucket name from the end**. You want exactly `https://<account-id>.r2.cloudflarestorage.com`.
@@ -150,6 +150,30 @@ Ignore the "Token value" Cloudflare also shows — that is for Cloudflare's own 
 The job form now offers **Modal GPU (Tesla T4)**.
 
 > **Credit:** a new Modal account starts with **$1**, and unlocks the full $30/month only after a payment method is added. $1 is roughly 1.7 hours of T4 time — enough to verify the integration, not to train a real model.
+
+---
+
+## Enabling email notifications (Gmail)
+
+The notification bell in the header always works. Email is what makes it useful for jobs that outlive your session — a run you started before closing the laptop reports its result without you watching a tab.
+
+Gmail requires an **App password**, not your account password. Google rejects the account password on SMTP no matter how correct it is, failing with `535 Username and Password not accepted`.
+
+1. Turn on [2-Step Verification](https://myaccount.google.com/signinoptions/two-step-verification) — App passwords do not exist without it.
+2. Create one at [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords). Choose **Mail** and any device name.
+3. Google shows 16 characters as `abcd efgh ijkl mnop`. Add to `.env` **with the spaces removed and no quotes**:
+   ```
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_USERNAME=you@gmail.com
+   SMTP_PASSWORD=abcdefghijklmnop
+   ```
+4. `docker compose up -d backend worker`
+5. Open the notification bell and click **Send a test email**. It reports the SMTP error directly if anything is wrong, rather than leaving it in the worker log.
+
+You are emailed when a job **starts running**, **finishes successfully**, and **fails**. Each event is sent at most once, including when a job is finalised by the reconciler after a restart.
+
+For a provider that wants implicit TLS rather than STARTTLS, set `SMTP_PORT=465` and `SMTP_USE_SSL=true`. Set `FRONTEND_BASE_URL` if the **View job** link in an email should point somewhere other than `http://localhost:3000`.
 
 ---
 
@@ -223,6 +247,10 @@ Full interactive reference at **http://localhost:8000/docs**. Every route except
 | `GET` | `/jobs/{id}/checkpoints` | Checkpoint list with sizes |
 | `GET` | `/jobs/{id}/checkpoints/{name}/download` | Presigned checkpoint URL |
 | `POST` | `/jobs/{id}/cancel` | Cancel a running job |
+| `GET` | `/notifications` | Recent notifications, unread count, whether email is on |
+| `POST` | `/notifications/{id}/read` | Mark one notification read |
+| `POST` | `/notifications/read-all` | Mark every notification read |
+| `POST` | `/notifications/test-email` | Send a test email to the signed-in address |
 
 ---
 
@@ -295,7 +323,7 @@ This deletes all local data.
 
 **Registration returns 422 for a valid-looking email** — the validator rejects special-use domains such as `.local`, `.test` and `.invalid`. Use a real domain.
 
-**Port already in use** — change the matching `*_PORT` variable in `.env`. If you change `BACKEND_PORT`, update `NEXT_PUBLIC_API_BASE_URL` to match.
+**Port already in use** — change the matching `*_PORT` variable in `.env`. If you change `BACKEND_PORT`, update `NEXT_PUBLIC_API_BASE_URL` to match and rebuild the frontend (`docker compose up -d --build frontend`) — Next.js bakes `NEXT_PUBLIC_*` into the browser bundle at build time, so a restart alone will not pick it up.
 
 **A job shows `running` long after it finished** — the reconciler settles these within a minute of the backend running. Check `docker compose logs backend` for reconcile errors.
 

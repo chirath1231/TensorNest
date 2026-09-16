@@ -28,6 +28,14 @@ class Settings(BaseSettings):
     s3_access_key_id: str = "tensornest"
     s3_secret_access_key: str = "tensornest123"
     s3_bucket: str = "tensornest"
+    # Endpoint used only for *presigned* URLs, which are opened by a browser
+    # on the host rather than from inside this container. With local MinIO the
+    # two differ: the backend reaches it at http://minio:9000, but that name
+    # does not resolve outside Docker, so a URL signed for it is unopenable.
+    # The host header is part of the signature, so the URL has to be signed
+    # against the public name -- rewriting it afterwards invalidates it.
+    # Empty means "same as s3_endpoint_url", which is correct for R2.
+    s3_public_endpoint_url: str = ""
     s3_region: str = "auto"  # R2 requires the literal "auto"
     # Downloads are handed out as time-limited presigned URLs so that bytes go
     # straight from the bucket to the client (or to a training container)
@@ -50,6 +58,36 @@ class Settings(BaseSettings):
     modal_timeout_seconds: int = 3600
     modal_pip_packages: list[str] = ["torch", "numpy", "pandas", "scikit-learn"]
 
+    # --- Email notifications (SMTP) --------------------------------------
+    # Job outcomes are emailed because the whole point of running training
+    # off the browser session is that you can close the laptop — so the
+    # result has to reach you somewhere other than the tab you left.
+    #
+    # With Gmail, smtp_password must be a 16-character App Password
+    # (Google Account > Security > 2-Step Verification > App passwords).
+    # Google rejects the account password itself on SMTP, so a normal
+    # password fails authentication no matter how correct it looks.
+    #
+    # Leaving smtp_host empty disables email; the in-app notification
+    # centre still records everything.
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    # Gmail ignores a From that isn't the authenticated account, so this
+    # defaults to smtp_username rather than being separately required.
+    smtp_from_email: str = ""
+    smtp_from_name: str = "TensorNest"
+    # Port 587 opens in the clear and upgrades with STARTTLS; port 465
+    # expects TLS from the first byte. Anything else is server-specific.
+    smtp_use_ssl: bool = False
+    smtp_timeout_seconds: int = 20
+
+    # Base URL that links in notification emails point at. It is resolved
+    # in the recipient's mail client, not in a container, so localhost only
+    # works while you are reading mail on the machine running the stack.
+    frontend_base_url: str = "http://localhost:3000"
+
     storage_root: str = "/storage"
     # Name of the Docker volume mounted at storage_root. The backend and worker
     # ask the *host's* daemon to start sibling job containers, so those
@@ -70,6 +108,14 @@ class Settings(BaseSettings):
     job_memory_limit: str = "2g"
 
     cors_origins: list[str] = ["http://localhost:3000"]
+
+    @property
+    def email_enabled(self) -> bool:
+        return bool(self.smtp_host)
+
+    @property
+    def email_sender(self) -> str:
+        return self.smtp_from_email or self.smtp_username
 
 
 @lru_cache

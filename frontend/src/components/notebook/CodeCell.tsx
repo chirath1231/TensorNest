@@ -42,27 +42,27 @@ export function CodeCell({ cell, onChange, onRun, onRunAndAdvance, onDelete, onM
   const outputs = (cell.outputs as unknown as OutputMessage[]) || [];
 
   return (
-    <div className={`group rounded-lg border p-3 transition-colors ${running ? "border-cyan-300" : "border-[#f2bc33]"}`}>
+    <div className={`group rounded-2xl border p-3.5 transition-colors ${running ? "border-cyan-400/50 bg-cyan-400/[0.04]" : "border-white/10 bg-white/[0.03] hover:border-white/20"}`}>
       <div className="mb-2 flex items-center justify-between">
-        <span className="flex items-center gap-1.5 font-mono text-xs text-[#e6c163]">
-          {running ? <Loader2 className="h-3 w-3 animate-spin text-cyan-500" /> : `[${cell.execution_count ?? " "}]`}
+        <span className="flex items-center gap-1.5 font-mono text-xs text-slate-500">
+          {running ? <Loader2 className="h-3 w-3 animate-spin text-cyan-300" /> : `[${cell.execution_count ?? " "}]`}
         </span>
         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100">
           {outputs.length > 0 && (
-            <button onClick={() => setCollapsed((c) => !c)} className="text-[#e6c163] hover:text-[#e6c163] dark:hover:text-[#e6c163]" title="Toggle output">
+            <button onClick={() => setCollapsed((c) => !c)} className="rounded p-1 text-slate-400 transition hover:bg-white/10 hover:text-slate-100" title="Toggle output">
               <ChevronRight className={`h-3.5 w-3.5 transition-transform ${collapsed ? "" : "rotate-90"}`} />
             </button>
           )}
-          <button onClick={handleRun} disabled={running} className="flex items-center gap-1 text-xs text-[#e6c163] hover:text-[#e6c163] dark:text-[#e6c163] dark:hover:text-[#e6c163]" title="Run (Ctrl+Enter)">
+          <button onClick={handleRun} disabled={running} className="flex items-center gap-1 rounded p-1 text-xs text-slate-400 transition hover:bg-white/10 hover:text-cyan-200 disabled:opacity-50" title="Run (Ctrl+Enter)">
             <Play className="h-3 w-3" />
           </button>
-          <button onClick={onMoveUp} className="text-[#e6c163] hover:text-[#e6c163] dark:hover:text-[#e6c163]" title="Move up">
+          <button onClick={onMoveUp} className="rounded p-1 text-slate-400 transition hover:bg-white/10 hover:text-slate-100" title="Move up">
             <ArrowUp className="h-3.5 w-3.5" />
           </button>
-          <button onClick={onMoveDown} className="text-[#e6c163] hover:text-[#e6c163] dark:hover:text-[#e6c163]" title="Move down">
+          <button onClick={onMoveDown} className="rounded p-1 text-slate-400 transition hover:bg-white/10 hover:text-slate-100" title="Move down">
             <ArrowDown className="h-3.5 w-3.5" />
           </button>
-          <button onClick={onDelete} className="text-red-400 hover:text-red-600" title="Delete">
+          <button onClick={onDelete} className="rounded p-1 text-slate-400 transition hover:bg-rose-500/15 hover:text-rose-300" title="Delete">
             <Trash2 className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -84,7 +84,7 @@ export function CodeCell({ cell, onChange, onRun, onRunAndAdvance, onDelete, onM
       />
       {!collapsed && <OutputRenderer outputs={outputs} />}
       {collapsed && outputs.length > 0 && (
-        <p className="mt-2 text-xs text-[#e6c163]">Output collapsed ({outputs.length} item{outputs.length > 1 ? "s" : ""})</p>
+        <p className="mt-2 text-xs text-muted">Output collapsed ({outputs.length} item{outputs.length > 1 ? "s" : ""})</p>
       )}
     </div>
   );

@@ -1,19 +1,29 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { AlertCircle, Cpu, Loader2, Rocket, Zap } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { jobsApi } from "@/lib/resources";
 import type { ProviderType } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
-const PROVIDERS: { value: ProviderType; label: string; hint: string }[] = [
+const PROVIDERS: {
+  value: ProviderType;
+  label: string;
+  hint: string;
+  icon: LucideIcon;
+}[] = [
   {
     value: "local_cpu",
     label: "Local CPU",
-    hint: "Runs in a container on this machine. Free, slow, good for testing the pipeline.",
+    hint: "Runs in a container on this machine. Free and slow — good for testing the pipeline.",
+    icon: Cpu,
   },
   {
     value: "modal_gpu",
-    label: "Modal GPU (Tesla T4)",
-    hint: "Runs on a remote GPU. Survives closing this tab or shutting down your computer. Consumes Modal credit.",
+    label: "Modal GPU · Tesla T4",
+    hint: "Runs on a remote GPU. Survives closing the tab or shutting the computer down. Uses Modal credit.",
+    icon: Zap,
   },
 ];
 
@@ -55,56 +65,118 @@ export function JobForm({ onCreated }: { onCreated: () => void }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 rounded-lg border border-[#f2bc33] bg-neutral-50/50 p-4 dark:bg-neutral-900/50">
-      <h2 className="text-sm font-medium dark:text-[#e6c163]">Submit a background job</h2>
-      {error && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950/40 dark:text-red-400">{error}</p>}
-      <input
-        required
-        placeholder="Job name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        className="w-full rounded-md border border-[#f2bc33] bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-500 dark:bg-neutral-900 dark:text-[#e6c163]"
-      />
-      <textarea
-        required
-        value={script}
-        onChange={(e) => setScript(e.target.value)}
-        rows={10}
-        spellCheck={false}
-        className="w-full rounded-md border border-[#f2bc33] bg-white p-2 font-mono text-xs outline-none transition focus:border-cyan-500 dark:bg-neutral-900 dark:text-neutral-100"
-      />
-      <fieldset className="space-y-1.5">
-        <legend className="text-xs font-medium text-[#e6c163]">Compute</legend>
-        {PROVIDERS.map((p) => (
-          <label
-            key={p.value}
-            className="flex cursor-pointer items-start gap-2 rounded-md border border-[#f2bc33] px-3 py-2 transition hover:bg-neutral-100/50 dark:hover:bg-neutral-800/50"
-          >
-            <input
-              type="radio"
-              name="provider_type"
-              value={p.value}
-              checked={provider === p.value}
-              onChange={() => setProvider(p.value)}
-              className="mt-0.5 accent-cyan-600"
-            />
-            <span>
-              <span className="block text-sm dark:text-[#e6c163]">{p.label}</span>
-              <span className="block text-xs text-[#e6c163]/70">{p.hint}</span>
-            </span>
-          </label>
-        ))}
+    <form onSubmit={handleSubmit} className="glass glass-sheen relative space-y-5 rounded-2xl p-5 sm:p-6">
+      <div>
+        <h2 className="text-sm font-semibold text-slate-100">Submit a background job</h2>
+        <p className="mt-0.5 text-xs text-muted">
+          Write checkpoints to the path in <code className="text-cyan-300">CHECKPOINT_DIR</code> —
+          they upload to your bucket when the job finishes.
+        </p>
+      </div>
+
+      {error && (
+        <p
+          role="alert"
+          className="flex items-center gap-2 rounded-xl border border-rose-400/30 bg-rose-500/10 px-3.5 py-2.5 text-sm text-rose-200"
+        >
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {error}
+        </p>
+      )}
+
+      <div className="space-y-1.5">
+        <label htmlFor="job-name" className="block text-xs font-medium uppercase tracking-wide text-muted">
+          Job name
+        </label>
+        <input
+          id="job-name"
+          required
+          placeholder="resnet-finetune-run-3"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="glass-input"
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <label htmlFor="job-script" className="block text-xs font-medium uppercase tracking-wide text-muted">
+          Script
+        </label>
+        <textarea
+          id="job-script"
+          required
+          value={script}
+          onChange={(e) => setScript(e.target.value)}
+          rows={12}
+          spellCheck={false}
+          className="glass-input resize-y font-mono text-xs leading-relaxed"
+        />
+      </div>
+
+      <fieldset className="space-y-2">
+        <legend className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">
+          Compute
+        </legend>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {PROVIDERS.map((p) => {
+            const selected = provider === p.value;
+            return (
+              <label
+                key={p.value}
+                className={cn(
+                  "flex cursor-pointer gap-3 rounded-xl border p-3.5 transition",
+                  selected
+                    ? "border-cyan-400/50 bg-cyan-400/10"
+                    : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06]"
+                )}
+              >
+                <input
+                  type="radio"
+                  name="provider_type"
+                  value={p.value}
+                  checked={selected}
+                  onChange={() => setProvider(p.value)}
+                  className="sr-only"
+                />
+                <span
+                  className={cn(
+                    "mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg border transition",
+                    selected
+                      ? "border-cyan-400/40 bg-cyan-400/15 text-cyan-200"
+                      : "border-white/10 bg-white/5 text-slate-400"
+                  )}
+                >
+                  <p.icon className="h-4 w-4" />
+                </span>
+                <span className="min-w-0">
+                  <span
+                    className={cn(
+                      "block text-sm font-medium",
+                      selected ? "text-slate-50" : "text-slate-200"
+                    )}
+                  >
+                    {p.label}
+                  </span>
+                  <span className="mt-0.5 block text-xs leading-snug text-muted">{p.hint}</span>
+                </span>
+              </label>
+            );
+          })}
+        </div>
       </fieldset>
-      <p className="text-xs text-[#e6c163]">
-        Write checkpoints to the directory in the <code>CHECKPOINT_DIR</code> env var — they are
-        uploaded to your storage bucket when the job finishes.
-      </p>
-      <button
-        type="submit"
-        disabled={submitting}
-        className="rounded-md bg-cyan-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-cyan-700 disabled:opacity-50"
-      >
-        {submitting ? "Submitting…" : "Submit Job"}
+
+      <button type="submit" disabled={submitting} className="btn-accent w-full sm:w-auto">
+        {submitting ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Submitting…
+          </>
+        ) : (
+          <>
+            <Rocket className="h-4 w-4" />
+            Submit job
+          </>
+        )}
       </button>
     </form>
   );
