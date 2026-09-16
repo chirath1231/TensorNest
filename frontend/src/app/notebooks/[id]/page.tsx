@@ -10,7 +10,7 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AuthGuard } from "@/components/AuthGuard";
@@ -20,7 +20,7 @@ import { NotebookToolbar } from "@/components/notebook/NotebookToolbar";
 import { SortableCell } from "@/components/notebook/SortableCell";
 import { useKernel } from "@/components/notebook/useKernel";
 import type { OutputMessage } from "@/lib/kernelClient";
-import { notebooksApi } from "@/lib/resources";
+import { jobsApi, notebooksApi } from "@/lib/resources";
 import type { Notebook, NotebookCell } from "@/lib/types";
 
 function newCell(cellType: "code" | "markdown"): NotebookCell {
@@ -35,12 +35,15 @@ function newCell(cellType: "code" | "markdown"): NotebookCell {
 
 function NotebookEditorContent() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const notebookId = params.id;
 
   const [notebook, setNotebook] = useState<Notebook | null>(null);
   const [title, setTitle] = useState("");
   const [cells, setCells] = useState<NotebookCell[]>([]);
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
+  const [submittingJob, setSubmittingJob] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { status: kernelStatus, runCode } = useKernel(notebookId);
 
@@ -83,6 +86,28 @@ function NotebookEditorContent() {
       });
     }, 1000);
   }, [notebookId, notebook?.content]);
+
+  /** Persist immediately instead of waiting out the debounce.
+   *
+   *  Exporting or submitting a job reads the notebook on the server, so a save
+   *  still sitting in the 1s timer would silently produce a stale artifact. */
+  async function flushSave() {
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+    setSaveStatus("saving");
+    try {
+      await notebooksApi.update(notebookId, {
+        title,
+        content: { ...notebook?.content, cells },
+      });
+      setSaveStatus("saved");
+    } catch {
+      setSaveStatus("unsaved");
+      throw new Error("Could not save the notebook before running it.");
+    }
+  }
 
   function updateCell(id: string, partial: Partial<NotebookCell>) {
     setCells((prev) => prev.map((c) => (c.id === id ? { ...c, ...partial } : c)));
@@ -176,6 +201,59 @@ function NotebookEditorContent() {
     toast.success("Run All complete");
   }
 
+  async function runAsJob() {
+    // Markdown is dropped and code cells are joined in order, which is exactly
+    // what "Run all" executes — so the job runs the notebook as read.
+    const script = cells
+      .filter((c) => c.cell_type === "code")
+      .map((c) => c.source.trimEnd())
+      .filter(Boolean)
+      .join("\n\n");
+
+    if (!script) {
+      toast.error("Nothing to run — this notebook has no code yet.");
+      return;
+    }
+
+    setSubmittingJob(true);
+    try {
+      await flushSave();
+      const job = await jobsApi.create({
+        name: title || "Untitled Notebook",
+        script_source: script,
+        notebook_id: notebookId,
+      });
+      toast.success("Job submitted — it keeps running if you close this tab.", {
+        action: { label: "View", onClick: () => router.push(`/jobs/${job.id}`) },
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not submit the job");
+    } finally {
+      setSubmittingJob(false);
+    }
+  }
+
+  async function exportNotebook() {
+    setExporting(true);
+    try {
+      await flushSave();
+      const { url, filename } = await notebooksApi.export(notebookId);
+      // The presigned URL already carries Content-Disposition: attachment, so
+      // opening it downloads rather than navigating away.
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      toast.success(`Exported ${filename}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not export this notebook");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   if (!notebook) {
     return <div className="flex h-screen items-center justify-center text-sm text-muted">Loading…</div>;
   }
@@ -188,6 +266,10 @@ function NotebookEditorContent() {
         onAddCode={() => addCell("code")}
         onAddMarkdown={() => addCell("markdown")}
         onRunAll={runAll}
+        onRunAsJob={runAsJob}
+        onExport={exportNotebook}
+        submittingJob={submittingJob}
+        exporting={exporting}
         kernelStatus={kernelStatus}
         saveStatus={saveStatus}
       />

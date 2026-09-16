@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, Check, Code2, Loader2, Play, Type } from "lucide-react";
+import { ArrowLeft, Check, Code2, Download, Loader2, Play, Rocket, Type } from "lucide-react";
 import type { KernelStatus } from "./useKernel";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +11,10 @@ interface Props {
   onAddCode: () => void;
   onAddMarkdown: () => void;
   onRunAll: () => void;
+  onRunAsJob: () => void;
+  onExport: () => void;
+  submittingJob: boolean;
+  exporting: boolean;
   kernelStatus: KernelStatus;
   saveStatus: "saved" | "saving" | "unsaved";
 }
@@ -28,6 +32,10 @@ export function NotebookToolbar({
   onAddCode,
   onAddMarkdown,
   onRunAll,
+  onRunAsJob,
+  onExport,
+  submittingJob,
+  exporting,
   kernelStatus,
   saveStatus,
 }: Props) {
@@ -71,6 +79,32 @@ export function NotebookToolbar({
         <button onClick={onAddMarkdown} className="btn-ghost px-2.5 py-1.5 text-xs sm:text-sm">
           <Type className="h-3.5 w-3.5" />
           Markdown
+        </button>
+        <button
+          onClick={onExport}
+          disabled={exporting}
+          title="Download as .ipynb"
+          className="btn-ghost px-2.5 py-1.5 text-xs disabled:opacity-50 sm:text-sm"
+        >
+          {exporting ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Download className="h-3.5 w-3.5" />
+          )}
+          <span className="hidden sm:inline">Export</span>
+        </button>
+        <button
+          onClick={onRunAsJob}
+          disabled={submittingJob}
+          title="Run these cells as a detached job that survives closing the tab"
+          className="btn-ghost px-2.5 py-1.5 text-xs disabled:opacity-50 sm:text-sm"
+        >
+          {submittingJob ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Rocket className="h-3.5 w-3.5" />
+          )}
+          <span className="hidden sm:inline">Run as job</span>
         </button>
         <button onClick={onRunAll} className="btn-accent px-3 py-1.5 text-xs sm:text-sm">
           <Play className="h-3.5 w-3.5" />

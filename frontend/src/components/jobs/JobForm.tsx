@@ -46,6 +46,7 @@ export function JobForm({ onCreated }: { onCreated: () => void }) {
   const [name, setName] = useState("");
   const [script, setScript] = useState(SAMPLE_SCRIPT);
   const [provider, setProvider] = useState<ProviderType>("local_cpu");
+  const [allowNetwork, setAllowNetwork] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,7 +55,12 @@ export function JobForm({ onCreated }: { onCreated: () => void }) {
     setSubmitting(true);
     setError(null);
     try {
-      await jobsApi.create({ name, script_source: script, provider_type: provider });
+      await jobsApi.create({
+        name,
+        script_source: script,
+        provider_type: provider,
+        allow_network: allowNetwork,
+      });
       setName("");
       onCreated();
     } catch (err) {
@@ -163,6 +169,24 @@ export function JobForm({ onCreated }: { onCreated: () => void }) {
             );
           })}
         </div>
+
+        {provider === "local_cpu" && (
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3.5 transition hover:border-white/20">
+            <input
+              type="checkbox"
+              checked={allowNetwork}
+              onChange={(e) => setAllowNetwork(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-cyan-400"
+            />
+            <span className="min-w-0">
+              <span className="block text-sm font-medium text-slate-200">Allow network access</span>
+              <span className="mt-0.5 block text-xs leading-snug text-muted">
+                Needed to read datasets with <code className="text-cyan-300">tn.load()</code> or to
+                pip install while the job runs. Uncheck for a fully isolated run.
+              </span>
+            </span>
+          </label>
+        )}
       </fieldset>
 
       <button type="submit" disabled={submitting} className="btn-accent w-full sm:w-auto">

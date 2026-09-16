@@ -41,6 +41,7 @@ export interface Job {
   name: string;
   status: JobStatus;
   provider_type: string;
+  allow_network: boolean;
   progress: number;
   error_message: string | null;
   created_at: string;

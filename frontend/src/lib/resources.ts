@@ -25,6 +25,11 @@ export const notebooksApi = {
       method: "POST",
     }),
   stopKernel: (id: string) => apiFetch<void>(`/notebooks/${id}/kernel`, { method: "DELETE" }),
+  export: (id: string) =>
+    apiFetch<{ object_key: string; size: number; filename: string; url: string }>(
+      `/notebooks/${id}/export`,
+      { method: "POST" }
+    ),
 };
 
 export const jobsApi = {
@@ -35,6 +40,7 @@ export const jobsApi = {
     script_source: string;
     notebook_id?: string | null;
     provider_type?: ProviderType;
+    allow_network?: boolean;
   }) => apiFetch<Job>("/jobs", { method: "POST", body: JSON.stringify(payload) }),
   logs: (id: string) => apiFetch<{ logs: string }>(`/jobs/${id}/logs`),
   checkpoints: (id: string) => apiFetch<{ checkpoints: Checkpoint[] }>(`/jobs/${id}/checkpoints`),
