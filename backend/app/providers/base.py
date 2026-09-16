@@ -28,13 +28,32 @@ class JobStatus:
     exit_code: int | None
 
 
+@dataclass
+class JobLaunchSpec:
+    """Everything a run needs beyond its own source, gathered in one object.
+
+    A dataclass rather than a growing parameter list, because each new
+    capability the platform gives a running job — dataset access today, metric
+    logging next — otherwise changes this signature and every implementation
+    of it.
+    """
+
+    script_source: str
+    # The SDK is delivered with the job rather than baked into an image: a
+    # Modal sandbox builds from Modal's own image, so there is nowhere to bake.
+    sdk_source: str
+    sdk_token: str
+    api_base_url: str
+    allow_network: bool = False
+
+
 class ComputeProvider(ABC):
     """Executes a job's script in an isolated environment and reports on it."""
 
     provider_type: str
 
     @abstractmethod
-    async def submit_job(self, job_id: UUID, script_source: str) -> JobRunHandle:
+    async def submit_job(self, job_id: UUID, spec: JobLaunchSpec) -> JobRunHandle:
         """Start executing the job. Returns a handle used for status/logs/cancel."""
 
     @abstractmethod

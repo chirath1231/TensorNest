@@ -1,16 +1,21 @@
 import asyncio
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from sqlalchemy import select
 
+from app.core.config import get_settings
 from app.core.db import async_session_maker
+from app.core.security import create_sdk_token
 from app.models.job import Job, JobCheckpoint
-from app.providers.base import JobRunHandle
+from app.providers.base import JobLaunchSpec, JobRunHandle
 from app.providers.local_docker import LocalDockerProvider
 from app.providers.modal_gpu import ModalGPUProvider
+from app.sdk import sdk_source
 from app.services import job_artifacts, notification_service
+
+settings = get_settings()
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +36,34 @@ def job_workspace(job: Job) -> str:
     this field, so it exists for logging and future providers that may need it.
     """
     return f"jobs/{job.id}"
+
+
+def _launch_spec(job: Job) -> JobLaunchSpec:
+    """Everything the run needs in order to reach back into the platform.
+
+    The dataset token is minted here rather than at submit time so a job that
+    is retried after a worker restart gets a fresh one — the original would
+    have been issued before however long the outage lasted.
+    """
+    remote = job.provider_type != "local_cpu"
+    # A Modal sandbox runs on Modal's hardware and cannot resolve a Compose
+    # service name. Without a public URL configured it still gets the internal
+    # one, and the SDK's connection error explains why it failed.
+    api_base_url = (
+        (settings.public_api_base_url or settings.internal_api_base_url)
+        if remote
+        else settings.internal_api_base_url
+    )
+
+    return JobLaunchSpec(
+        script_source=job.script_source,
+        sdk_source=sdk_source(),
+        sdk_token=create_sdk_token(
+            job.owner_id, timedelta(seconds=MAX_RUNTIME_SECONDS + 3600)
+        ),
+        api_base_url=api_base_url,
+        allow_network=job.allow_network,
+    )
 
 
 async def run_job(ctx: dict, job_id: str) -> None:
@@ -66,7 +99,7 @@ async def run_job(ctx: dict, job_id: str) -> None:
             logger.info("Reattached to existing run %s for job %s", job.container_id, job.id)
         else:
             try:
-                run_handle = await provider.submit_job(job.id, job.script_source)
+                run_handle = await provider.submit_job(job.id, _launch_spec(job))
                 job.container_id = run_handle.container_id
                 await db.commit()
             except Exception as exc:  # noqa: BLE001

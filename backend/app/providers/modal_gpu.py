@@ -27,7 +27,7 @@ from uuid import UUID
 import modal
 
 from app.core.config import get_settings
-from app.providers.base import ComputeProvider, JobRunHandle, JobStatus
+from app.providers.base import ComputeProvider, JobLaunchSpec, JobRunHandle, JobStatus
 from app.services import job_artifacts
 
 settings = get_settings()
@@ -66,16 +66,24 @@ class ModalGPUProvider(ComputeProvider):
 
     provider_type = "modal_gpu"
 
-    async def submit_job(self, job_id: UUID, script_source: str) -> JobRunHandle:
+    async def submit_job(self, job_id: UUID, spec: JobLaunchSpec) -> JobRunHandle:
         _configure_auth()
         checkpoint_dir = _checkpoint_dir(job_id)
+        job_dir = _job_dir(job_id)
 
         # The user's script runs as the sandbox entrypoint. `mkdir -p` first so
         # CHECKPOINT_DIR exists exactly as it does under the local provider,
         # then exec so the Python process becomes PID 1 and its exit status is
         # the sandbox's exit status.
+        #
+        # The SDK is written from the environment rather than baked into the
+        # image: this image is built by Modal from its own base, so there is no
+        # local build context to copy a file out of. Writing it into the
+        # workdir puts it on sys.path for the script that runs next, which is
+        # the same mechanism the local provider relies on.
         bootstrap = (
             f"mkdir -p {checkpoint_dir} && "
+            f'printf "%s" "$TENSORNEST_SDK" > {job_dir}/tensornest.py && '
             f'exec python -u -c "$TENSORNEST_SCRIPT"'
         )
 
@@ -94,7 +102,10 @@ class ModalGPUProvider(ComputeProvider):
                 secrets=[
                     modal.Secret.from_dict(
                         {
-                            "TENSORNEST_SCRIPT": script_source,
+                            "TENSORNEST_SCRIPT": spec.script_source,
+                            "TENSORNEST_SDK": spec.sdk_source,
+                            "TENSORNEST_API_URL": spec.api_base_url,
+                            "TENSORNEST_TOKEN": spec.sdk_token,
                             "CHECKPOINT_DIR": checkpoint_dir,
                             "JOB_ID": str(job_id),
                         }

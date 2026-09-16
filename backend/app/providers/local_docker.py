@@ -6,7 +6,7 @@ import docker
 from docker.errors import NotFound
 
 from app.core.config import get_settings
-from app.providers.base import ComputeProvider, JobRunHandle, JobStatus
+from app.providers.base import ComputeProvider, JobLaunchSpec, JobRunHandle, JobStatus
 from app.services import job_artifacts
 
 settings = get_settings()
@@ -34,12 +34,18 @@ class LocalDockerProvider(ComputeProvider):
 
     provider_type = "local_cpu"
 
-    async def submit_job(self, job_id: UUID, script_source: str) -> JobRunHandle:
+    async def submit_job(self, job_id: UUID, spec: JobLaunchSpec) -> JobRunHandle:
         job_dir = _job_dir(job_id)
         os.makedirs(os.path.join(job_dir, "checkpoints"), exist_ok=True)
         script_path = os.path.join(job_dir, "job.py")
         with open(script_path, "w", encoding="utf-8") as f:
-            f.write(script_source)
+            f.write(spec.script_source)
+
+        # Python puts a script's own directory at the front of sys.path, so
+        # dropping the SDK beside job.py is all it takes for `import tensornest`
+        # to resolve — no image rebuild, no PYTHONPATH.
+        with open(os.path.join(job_dir, "tensornest.py"), "w", encoding="utf-8") as f:
+            f.write(spec.sdk_source)
 
         def _run() -> str:
             client = _client()
@@ -47,13 +53,21 @@ class LocalDockerProvider(ComputeProvider):
                 settings.kernel_image,
                 command=["python", os.path.join(job_dir, "job.py")],
                 working_dir=job_dir,
-                environment={"CHECKPOINT_DIR": os.path.join(job_dir, "checkpoints")},
+                environment={
+                    "CHECKPOINT_DIR": os.path.join(job_dir, "checkpoints"),
+                    "TENSORNEST_API_URL": spec.api_base_url,
+                    "TENSORNEST_TOKEN": spec.sdk_token,
+                    "JOB_ID": str(job_id),
+                },
                 volumes={
                     settings.storage_volume: {"bind": settings.storage_root, "mode": "rw"}
                 },
                 nano_cpus=int(settings.job_cpu_limit * 1e9),
                 mem_limit=settings.job_memory_limit,
-                network_disabled=True,
+                # With networking off the container cannot reach the API either,
+                # so a job that wants datasets has to be on the Compose network.
+                network=settings.docker_network if spec.allow_network else None,
+                network_disabled=not spec.allow_network,
                 detach=True,
                 name=f"tensornest-job-{job_id}",
             )
