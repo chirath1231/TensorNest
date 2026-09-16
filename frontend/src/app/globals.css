@@ -172,3 +172,72 @@ body {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Landing page only.
+
+   The gradient-border card from ui-layouts.com/components/gradient-border,
+   rewritten for Tailwind v3 — the published source expresses the whole thing
+   as one v4 arbitrary-property class using `--theme()`, which v3 has no
+   equivalent for.
+
+   Two details carry it. `--border-angle` has to be registered with @property
+   or it interpolates as a string and the border snaps between keyframes
+   instead of sweeping. And the padding-box fill must be *opaque*: the conic
+   gradient is painted across the whole border box, so a translucent fill lets
+   it flood the card face instead of leaving only the 1px rim showing.
+--------------------------------------------------------------------------- */
+
+@property --border-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes border-angle-spin {
+  to {
+    --border-angle: 360deg;
+  }
+}
+
+@layer components {
+  .gradient-border {
+    /* Two backgrounds: an opaque fill clipped to the padding box, the sweep
+       clipped to the border box, so the 1px transparent border is the only
+       place the conic gradient is visible. */
+    background:
+      linear-gradient(45deg, #080b17, #131a30 50%, #0d1224) padding-box,
+      conic-gradient(
+          from var(--border-angle),
+          rgba(var(--glass) / 0.12) 80%,
+          rgb(var(--accent)) 86%,
+          rgb(var(--accent-2)) 90%,
+          rgb(var(--accent)) 94%,
+          rgba(var(--glass) / 0.12)
+        )
+        border-box;
+    border: 1px solid transparent;
+    animation: border-angle-spin 8s linear infinite;
+  }
+}
+
+@layer utilities {
+  /* Fades a decorative strip out at both ends so a marquee appears to run on
+     past the viewport rather than stopping at a hard edge. */
+  .edge-fade {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 12%,
+      #000 88%,
+      transparent
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 12%,
+      #000 88%,
+      transparent
+    );
+  }
+}
