@@ -2,6 +2,10 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  bio: string | null;
+  /** Short-lived signed URL, re-issued on every read. Null when unset. */
+  avatar_url: string | null;
+  created_at: string;
 }
 
 export interface NotebookSummary {

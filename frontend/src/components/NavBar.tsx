@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Database, LayoutGrid, LogOut, Play } from "lucide-react";
+import { Database, LayoutGrid, Play } from "lucide-react";
 import { motion } from "framer-motion";
-import { useAuth } from "@/lib/AuthContext";
 import { Wordmark } from "@/components/ui/Logo";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
+import { ProfileMenu } from "@/components/ProfileMenu";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -16,10 +16,7 @@ const links = [
 ];
 
 export function NavBar() {
-  const { user, logout } = useAuth();
   const pathname = usePathname();
-
-  const initials = (user?.name || user?.email || "?").slice(0, 1).toUpperCase();
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-[rgb(6_8_20_/_0.62)] backdrop-blur-xl">
@@ -62,19 +59,7 @@ export function NavBar() {
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <NotificationCenter />
-          <span className="hidden max-w-[14rem] truncate text-sm text-muted lg:inline">
-            {user?.email}
-          </span>
-          <span
-            title={user?.email}
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-cyan-400 to-violet-500 text-xs font-semibold text-slate-950"
-          >
-            {initials}
-          </span>
-          <button onClick={logout} className="btn-ghost px-2.5" aria-label="Sign out">
-            <LogOut className="h-4 w-4" />
-            <span className="hidden sm:inline">Sign out</span>
-          </button>
+          <ProfileMenu />
         </div>
       </nav>
     </header>

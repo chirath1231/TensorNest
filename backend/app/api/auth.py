@@ -19,8 +19,9 @@ from app.schemas.auth import (
     RefreshRequest,
     RegisterRequest,
     TokenResponse,
-    UserResponse,
 )
+from app.schemas.user import UserProfileResponse
+from app.services import user_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -77,6 +78,6 @@ async def refresh(payload: RefreshRequest, db: AsyncSession = Depends(get_db)) -
     )
 
 
-@router.get("/me", response_model=UserResponse)
-async def me(current_user: User = Depends(get_current_user)) -> User:
-    return current_user
+@router.get("/me", response_model=UserProfileResponse)
+async def me(current_user: User = Depends(get_current_user)) -> UserProfileResponse:
+    return await user_service.serialize(current_user)
