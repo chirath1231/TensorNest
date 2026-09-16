@@ -9,6 +9,7 @@ import { ComputeTiers } from "@/components/landing/ComputeTiers";
 import { Faq } from "@/components/landing/Faq";
 import { CtaBand } from "@/components/landing/CtaBand";
 import { SiteFooter } from "@/components/landing/SiteFooter";
+import { ScrollHexButton } from "@/components/ui/ScrollHexButton";
 
 export const metadata: Metadata = {
   // Absolute, so the root does not come out as "TensorNest · TensorNest"
@@ -41,6 +42,7 @@ export default function LandingPage() {
         <CtaBand />
       </main>
       <SiteFooter />
+      <ScrollHexButton />
     </>
   );
 }
