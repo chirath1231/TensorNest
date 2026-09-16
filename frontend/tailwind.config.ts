@@ -31,6 +31,19 @@ const config: Config = {
         shimmer: {
           "100%": { transform: "translateX(100%)" },
         },
+        // Terminal caret, used by the type-writer component.
+        blink: { "0%,100%": { opacity: "1" }, "50%": { opacity: "0" } },
+        // The ui-layouts marquee: one copy of the track slides out by its own
+        // width plus the gap, at which point the next copy is exactly where it
+        // started, so the loop is seamless.
+        marquee: {
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(calc(-100% - var(--gap)))" },
+        },
+        "marquee-vertical": {
+          from: { transform: "translateY(0)" },
+          to: { transform: "translateY(calc(-100% - var(--gap)))" },
+        },
       },
       animation: {
         "fade-in": "fade-in 0.15s ease-out",
@@ -38,6 +51,12 @@ const config: Config = {
         drift: "drift 22s ease-in-out infinite",
         "drift-slow": "drift 34s ease-in-out infinite",
         shimmer: "shimmer 1.8s infinite",
+        blink: "blink 1s step-end infinite",
+        marquee: "marquee var(--duration) linear infinite",
+        "marquee-reverse": "marquee var(--duration) linear infinite reverse",
+        "marquee-vertical": "marquee-vertical var(--duration) linear infinite",
+        "marquee-vertical-reverse":
+          "marquee-vertical var(--duration) linear infinite reverse",
       },
     },
   },
