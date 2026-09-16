@@ -54,7 +54,7 @@ export function ProfileMenu() {
                would push the card off-screen. */
             className="glass glass-raised glass-sheen fixed inset-x-3 top-16 z-50 overflow-hidden rounded-2xl
                        bg-[rgb(9_12_28_/_0.94)]
-                       sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-64"
+                       sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-72"
             initial={{ opacity: 0, scale: 0.97, y: -6 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.97, y: -6 }}
@@ -64,7 +64,9 @@ export function ProfileMenu() {
               <Avatar src={user?.avatar_url} name={user?.name} email={user?.email} size="md" />
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-slate-50">{user?.name}</p>
-                <p className="truncate text-xs text-muted">{user?.email}</p>
+                {/* Wraps rather than truncates: half an address is no use to
+                    anyone checking which account they are signed in as. */}
+                <p className="break-words text-[11px] leading-snug text-muted">{user?.email}</p>
               </div>
             </div>
 
