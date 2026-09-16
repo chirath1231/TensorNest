@@ -3,6 +3,8 @@ import { getAccessToken } from "./auth";
 import type {
   AppNotification,
   Checkpoint,
+  DiscoverResult,
+  DiscoverSource,
   FileRecord,
   Job,
   Notebook,
@@ -89,6 +91,25 @@ export const filesApi = {
   downloadUrl: (id: string) =>
     apiFetch<{ url: string; filename: string }>(`/files/${id}/download`),
   remove: (id: string) => apiFetch<void>(`/files/${id}`, { method: "DELETE" }),
+};
+
+export const discoverApi = {
+  sources: () => apiFetch<{ sources: DiscoverSource[] }>("/discover/sources"),
+  search: (q: string, limit = 20) =>
+    apiFetch<{ results: DiscoverResult[] }>(
+      `/discover/search?q=${encodeURIComponent(q)}&limit=${limit}`
+    ),
+  describe: (source: string, ref: string) =>
+    apiFetch<DiscoverResult>(
+      `/discover/describe?source=${encodeURIComponent(source)}&ref=${encodeURIComponent(ref)}`
+    ),
+  import: (payload: { source: string; ref: string; path: string; filename?: string }) =>
+    apiFetch<FileRecord>("/discover/import", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  retry: (fileId: string) =>
+    apiFetch<FileRecord>(`/discover/import/${fileId}/retry`, { method: "POST" }),
 };
 
 export const profileApi = {
