@@ -76,6 +76,12 @@ async def download_file(
     a job never needs bucket credentials of its own.
     """
     record = await _owned_file(db, current_user, file_id)
+    if record.status != "ready":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="That dataset is still importing." if record.status == "importing"
+            else "That import failed, so there is nothing to download.",
+        )
     url = await presigned_get_url(record.object_key, record.filename)
     return FileDownloadResponse(url=url, filename=record.filename)
 
@@ -90,6 +96,10 @@ async def remove_file(
     # Delete the object first: a failure here aborts the request and leaves the
     # row in place, so the object stays reachable and retryable rather than
     # becoming an orphan nobody can see or clean up.
-    await delete_object(record.object_key)
+    #
+    # An import that failed or is still running has no object yet, and asking
+    # the bucket to delete an empty key is not a no-op — it is an error.
+    if record.object_key:
+        await delete_object(record.object_key)
     await db.delete(record)
     await db.commit()

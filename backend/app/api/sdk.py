@@ -39,9 +39,11 @@ async def serve_sdk() -> str:
 async def list_datasets(
     db: AsyncSession = Depends(get_db), current_user: User = Depends(get_sdk_user)
 ) -> dict:
+    # Only finished imports: a dataset still downloading has no object behind
+    # it yet, and offering it here would hand back a name that cannot be loaded.
     result = await db.execute(
         select(UploadedFile)
-        .where(UploadedFile.owner_id == current_user.id)
+        .where(UploadedFile.owner_id == current_user.id, UploadedFile.status == "ready")
         .order_by(UploadedFile.created_at.desc())
     )
     return {
@@ -69,7 +71,9 @@ async def resolve_dataset(
     would put a multi-gigabyte dataset through the API for no benefit, and
     would not work at all for a job running on hardware we do not own.
     """
-    owned = select(UploadedFile).where(UploadedFile.owner_id == current_user.id)
+    owned = select(UploadedFile).where(
+        UploadedFile.owner_id == current_user.id, UploadedFile.status == "ready"
+    )
 
     # Filename first: it is what people actually type. Two files can share a
     # name, so the newest wins — which is the one they just uploaded.

@@ -13,7 +13,7 @@ from app.providers.base import JobLaunchSpec, JobRunHandle
 from app.providers.local_docker import LocalDockerProvider
 from app.providers.modal_gpu import ModalGPUProvider
 from app.sdk import sdk_source
-from app.services import job_artifacts, notification_service
+from app.services import dataset_import, job_artifacts, notification_service
 
 settings = get_settings()
 
@@ -161,6 +161,16 @@ async def run_job(ctx: dict, job_id: str) -> None:
         job.finished_at = datetime.now(timezone.utc)
         await db.commit()
         await notification_service.notify_job_status(db, job)
+
+
+async def import_dataset(ctx: dict, file_id: str) -> None:
+    """Pull one external dataset into the bucket.
+
+    Queued rather than done in the request that asked for it: a dataset is
+    routinely gigabytes, and an HTTP handler is the wrong place to spend
+    minutes streaming one.
+    """
+    await dataset_import.perform_import(UUID(file_id))
 
 
 async def send_notification_email(ctx: dict, notification_id: str) -> None:
