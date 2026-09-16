@@ -88,6 +88,15 @@ class Settings(BaseSettings):
     # works while you are reading mail on the machine running the stack.
     frontend_base_url: str = "http://localhost:3000"
 
+    # --- External dataset catalogues -------------------------------------
+    # Hugging Face needs no token for public datasets; setting one only widens
+    # what is visible to gated or private repos on that account.
+    huggingface_token: str = ""
+    # Ceiling on a single imported file. The bucket would take far more, but an
+    # import is started by one click on a search result, so it is easy to ask
+    # for something enormous without meaning to.
+    dataset_import_max_bytes: int = 2 * 1024 * 1024 * 1024
+
     # --- In-container SDK ------------------------------------------------
     # How a kernel or job container reaches this API to resolve a dataset.
     # Containers on the Compose network reach it by service name; "localhost"
