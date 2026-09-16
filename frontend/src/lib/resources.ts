@@ -3,6 +3,8 @@ import { getAccessToken } from "./auth";
 import type {
   AppNotification,
   Checkpoint,
+  DiscoverResult,
+  DiscoverSource,
   FileRecord,
   Job,
   Notebook,
@@ -25,6 +27,11 @@ export const notebooksApi = {
       method: "POST",
     }),
   stopKernel: (id: string) => apiFetch<void>(`/notebooks/${id}/kernel`, { method: "DELETE" }),
+  export: (id: string) =>
+    apiFetch<{ object_key: string; size: number; filename: string; url: string }>(
+      `/notebooks/${id}/export`,
+      { method: "POST" }
+    ),
 };
 
 export const jobsApi = {
@@ -35,6 +42,7 @@ export const jobsApi = {
     script_source: string;
     notebook_id?: string | null;
     provider_type?: ProviderType;
+    allow_network?: boolean;
   }) => apiFetch<Job>("/jobs", { method: "POST", body: JSON.stringify(payload) }),
   logs: (id: string) => apiFetch<{ logs: string }>(`/jobs/${id}/logs`),
   checkpoints: (id: string) => apiFetch<{ checkpoints: Checkpoint[] }>(`/jobs/${id}/checkpoints`),
@@ -83,6 +91,25 @@ export const filesApi = {
   downloadUrl: (id: string) =>
     apiFetch<{ url: string; filename: string }>(`/files/${id}/download`),
   remove: (id: string) => apiFetch<void>(`/files/${id}`, { method: "DELETE" }),
+};
+
+export const discoverApi = {
+  sources: () => apiFetch<{ sources: DiscoverSource[] }>("/discover/sources"),
+  search: (q: string, limit = 20) =>
+    apiFetch<{ results: DiscoverResult[] }>(
+      `/discover/search?q=${encodeURIComponent(q)}&limit=${limit}`
+    ),
+  describe: (source: string, ref: string) =>
+    apiFetch<DiscoverResult>(
+      `/discover/describe?source=${encodeURIComponent(source)}&ref=${encodeURIComponent(ref)}`
+    ),
+  import: (payload: { source: string; ref: string; path: string; filename?: string }) =>
+    apiFetch<FileRecord>("/discover/import", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  retry: (fileId: string) =>
+    apiFetch<FileRecord>(`/discover/import/${fileId}/retry`, { method: "POST" }),
 };
 
 export const profileApi = {

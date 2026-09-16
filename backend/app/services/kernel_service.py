@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.db import async_session_maker
+from app.core.security import create_sdk_token
 from app.models.kernel_session import KernelSession
 from app.models.notebook import Notebook
 
@@ -41,8 +42,30 @@ async def get_or_create_session(db: AsyncSession, notebook: Notebook) -> KernelS
     return await _create_session(db, notebook)
 
 
+SDK_DIR = "/opt/tensornest"
+
+# Pull the SDK from the API before starting the gateway, so `import tensornest`
+# resolves in the first cell the user runs. Fetching beats baking it into the
+# image: the kernel image is ~2 GB and rebuilding it to change a client-side
+# helper is a poor trade. `|| true` keeps a backend hiccup from costing the user
+# their whole kernel — they lose tn.load(), not the notebook, and the SDK says
+# so if they call it.
+_BOOTSTRAP = (
+    "mkdir -p {sdk_dir} && "
+    "python -c \"import urllib.request;"
+    "urllib.request.urlretrieve('{api}/sdk/tensornest.py','{sdk_dir}/tensornest.py')\" || true; "
+    "exec jupyter kernelgateway "
+    "--KernelGatewayApp.ip=0.0.0.0 "
+    "--KernelGatewayApp.port={port} "
+    "--KernelGatewayApp.allow_origin='*'"
+)
+
+
 async def _create_session(db: AsyncSession, notebook: Notebook) -> KernelSession:
     container_name = f"tensornest-kernel-{uuid.uuid4().hex[:12]}"
+    sdk_token = create_sdk_token(
+        notebook.owner_id, timedelta(hours=settings.sdk_token_hours)
+    )
 
     def _run() -> str:
         client = _client()
@@ -63,12 +86,19 @@ async def _create_session(db: AsyncSession, notebook: Notebook) -> KernelSession
         client.containers.run(
             settings.kernel_image,
             command=[
-                "jupyter",
-                "kernelgateway",
-                "--KernelGatewayApp.ip=0.0.0.0",
-                f"--KernelGatewayApp.port={GATEWAY_PORT}",
-                "--KernelGatewayApp.allow_origin=*",
+                "sh",
+                "-c",
+                _BOOTSTRAP.format(
+                    sdk_dir=SDK_DIR,
+                    api=settings.internal_api_base_url.rstrip("/"),
+                    port=GATEWAY_PORT,
+                ),
             ],
+            environment={
+                "PYTHONPATH": SDK_DIR,
+                "TENSORNEST_API_URL": settings.internal_api_base_url,
+                "TENSORNEST_TOKEN": sdk_token,
+            },
             name=container_name,
             network=settings.docker_network,
             nano_cpus=int(settings.kernel_cpu_limit * 1e9),

@@ -12,6 +12,10 @@ class JobCreateRequest(BaseModel):
     # fallback; "modal_gpu" runs on a remote GPU and survives this backend
     # restarting. Validated against the registry in app.workers.tasks.
     provider_type: str = "local_cpu"
+    # Local jobs need the network to reach this API for tn.load(), and to pip
+    # install at runtime. Turning it off gives a fully isolated run that cannot
+    # read datasets. Ignored by modal_gpu, whose sandboxes are always online.
+    allow_network: bool = True
 
 
 class JobResponse(BaseModel):
@@ -19,6 +23,7 @@ class JobResponse(BaseModel):
     name: str
     status: str
     provider_type: str
+    allow_network: bool
     progress: float
     error_message: str | None
     created_at: datetime

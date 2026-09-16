@@ -98,6 +98,26 @@ async def presigned_get_url(key: str, filename: str | None = None) -> str:
     return await asyncio.to_thread(_sign)
 
 
+async def presigned_get_url_for_container(key: str) -> str:
+    """Download URL for a kernel or job container, not for a browser.
+
+    Signed against the *internal* endpoint rather than the public one. The two
+    differ only with local MinIO, and there the difference is fatal in both
+    directions: a browser cannot resolve `minio:9000`, and inside a container
+    `localhost:9000` is the container itself. With R2 the two are the same URL,
+    which is why a remote Modal job can use this unchanged.
+    """
+
+    def _sign() -> str:
+        return get_s3_client().generate_presigned_url(
+            "get_object",
+            Params={"Bucket": settings.s3_bucket, "Key": key},
+            ExpiresIn=settings.presigned_url_ttl_seconds,
+        )
+
+    return await asyncio.to_thread(_sign)
+
+
 async def download_bytes(key: str) -> bytes:
     """Fetch a whole object into memory. Intended for small objects only —
     training containers should be handed a presigned URL and stream it

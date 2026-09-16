@@ -7,7 +7,10 @@ import {
   Download,
   FileSpreadsheet,
   FileText,
+  Globe,
   Image as ImageIcon,
+  Loader2,
+  RefreshCw,
   Trash2,
   UploadCloud,
 } from "lucide-react";
@@ -18,7 +21,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { SkeletonRows } from "@/components/ui/Skeleton";
 import { PageHeader, SearchInput } from "@/components/ui/PageHeader";
 import { useConfirm } from "@/components/ui/useConfirm";
-import { filesApi } from "@/lib/resources";
+import { ImportDialog } from "@/components/datasets/ImportDialog";
+import { discoverApi, filesApi } from "@/lib/resources";
 import type { FileRecord } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +41,11 @@ function fileIcon(filename: string) {
   return Database;
 }
 
+const sourceLabels: Record<string, string> = {
+  huggingface: "Hugging Face",
+  url: "Link",
+};
+
 interface PendingUpload {
   key: string;
   name: string;
@@ -49,6 +58,7 @@ function DatasetsContent() {
   const [query, setQuery] = useState("");
   const [dragActive, setDragActive] = useState(false);
   const [uploads, setUploads] = useState<PendingUpload[]>([]);
+  const [importOpen, setImportOpen] = useState(false);
   const dragCounter = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const { confirm, dialog } = useConfirm();
@@ -64,6 +74,15 @@ function DatasetsContent() {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  // An import finishes on the worker, so the only way this page learns about it
+  // is to ask. Polling runs only while something is actually in flight.
+  const hasImporting = files.some((f) => f.status === "importing");
+  useEffect(() => {
+    if (!hasImporting) return;
+    const id = setInterval(refresh, 3000);
+    return () => clearInterval(id);
+  }, [hasImporting, refresh]);
 
   const filtered = useMemo(
     () => files.filter((f) => f.filename.toLowerCase().includes(query.toLowerCase())),
@@ -119,6 +138,16 @@ function DatasetsContent() {
     }
   }
 
+  async function handleRetry(file: FileRecord) {
+    try {
+      await discoverApi.retry(file.id);
+      toast.success(`Retrying ${file.filename}`);
+      refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not retry that import");
+    }
+  }
+
   async function handleDelete(file: FileRecord) {
     const ok = await confirm({
       title: `Delete "${file.filename}"?`,
@@ -142,6 +171,11 @@ function DatasetsContent() {
     <div className="min-h-screen">
       <NavBar />
       {dialog}
+      <ImportDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImported={refresh}
+      />
       <main className="mx-auto max-w-5xl px-5 py-9">
         <PageHeader
           title="Datasets"
@@ -152,6 +186,10 @@ function DatasetsContent() {
           }
         >
           <SearchInput value={query} onChange={setQuery} placeholder="Search files…" />
+          <button onClick={() => setImportOpen(true)} className="btn-ghost border border-white/12">
+            <Globe className="h-4 w-4" />
+            Import from web
+          </button>
           <button onClick={() => inputRef.current?.click()} className="btn-accent">
             <UploadCloud className="h-4 w-4" />
             Upload
@@ -260,22 +298,50 @@ function DatasetsContent() {
                         <Icon className="h-4 w-4 text-cyan-200" />
                       </div>
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-slate-100">
+                        <p className="flex items-center gap-2 truncate text-sm font-medium text-slate-100">
                           {file.filename}
+                          {file.source !== "upload" && (
+                            <span className="shrink-0 rounded bg-white/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-slate-400">
+                              {sourceLabels[file.source] ?? file.source}
+                            </span>
+                          )}
                         </p>
-                        <p className="text-xs text-muted">
-                          {formatSize(file.size)} · {new Date(file.created_at).toLocaleString()}
-                        </p>
+                        {file.status === "importing" ? (
+                          <p className="flex items-center gap-1.5 text-xs text-cyan-200">
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            Importing from the web…
+                          </p>
+                        ) : file.status === "failed" ? (
+                          <p className="truncate text-xs text-rose-300">
+                            Import failed — {file.error_message || "unknown error"}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-muted">
+                            {formatSize(file.size)} · {new Date(file.created_at).toLocaleString()}
+                            {file.data_license && ` · ${file.data_license}`}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
-                      <button
-                        onClick={() => handleDownload(file)}
-                        className="rounded-lg p-2 text-slate-400 transition hover:bg-white/10 hover:text-slate-100"
-                        aria-label={`Download ${file.filename}`}
-                      >
-                        <Download className="h-4 w-4" />
-                      </button>
+                      {file.status === "failed" && (
+                        <button
+                          onClick={() => handleRetry(file)}
+                          className="rounded-lg p-2 text-slate-400 transition hover:bg-white/10 hover:text-cyan-200"
+                          aria-label={`Retry importing ${file.filename}`}
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                        </button>
+                      )}
+                      {file.status === "ready" && (
+                        <button
+                          onClick={() => handleDownload(file)}
+                          className="rounded-lg p-2 text-slate-400 transition hover:bg-white/10 hover:text-slate-100"
+                          aria-label={`Download ${file.filename}`}
+                        >
+                          <Download className="h-4 w-4" />
+                        </button>
+                      )}
                       <button
                         onClick={() => handleDelete(file)}
                         className="rounded-lg p-2 text-slate-400 transition hover:bg-rose-500/15 hover:text-rose-300"

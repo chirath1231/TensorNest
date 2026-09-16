@@ -6,7 +6,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import auth, files, jobs, kernels, notebooks, notifications, users
+from app.api import auth, discover, files, jobs, kernels, notebooks, notifications, sdk, users
 from app.core.config import get_settings
 from app.core.storage import ensure_bucket
 from app.services.job_reconciler import reconcile_running_jobs
@@ -54,6 +54,8 @@ app.include_router(files.router)
 app.include_router(kernels.router)
 app.include_router(notifications.router)
 app.include_router(users.router)
+app.include_router(sdk.router)
+app.include_router(discover.router)
 
 
 @app.get("/health")
