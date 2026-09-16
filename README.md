@@ -191,6 +191,26 @@ Notebooks are **session-bound by design** — for interactive work. Close the ta
 
 Drag files onto **Datasets**. Uploads stream directly to the bucket without being buffered in memory, so large files are safe. Downloads use short-lived presigned URLs straight from storage.
 
+### Using a dataset in a notebook or job
+
+Both run with a `tensornest` module already importable:
+
+```python
+import tensornest as tn
+
+tn.datasets()                  # what's on your account
+df = tn.load("titanic.csv")    # csv, tsv, parquet, json/jsonl, xlsx, feather
+path = tn.download("weights.pt")   # anything else — returns a local path
+```
+
+`load` passes keyword arguments through to the underlying pandas reader, so `tn.load("wide.csv", usecols=["a", "b"])` works. Downloads are cached per container, so re-running a cell does not re-fetch the file.
+
+Inside a job, `tn.checkpoint_dir()` returns the directory whose contents are uploaded to your account when the run finishes.
+
+The module fetches bytes over a presigned URL rather than reading a mounted disk, because a Modal job runs on hardware that cannot see this machine's filesystem. The container is issued a short-lived token that can read your datasets and do nothing else — it cannot submit jobs or touch your account.
+
+A local job needs **Allow network access** left on (the default) for this, since the module reaches the API over the network. Turn it off for a genuinely isolated run that also cannot `pip install`.
+
 ### Jobs
 
 Write a script that saves checkpoints into the directory in the `CHECKPOINT_DIR` environment variable:
@@ -253,6 +273,9 @@ Full interactive reference at **http://localhost:8000/docs**. Every route except
 | `POST` | `/notifications/{id}/read` | Mark one notification read |
 | `POST` | `/notifications/read-all` | Mark every notification read |
 | `POST` | `/notifications/test-email` | Send a test email to the signed-in address |
+| `GET` | `/sdk/tensornest.py` | The in-container client, served to kernels at startup |
+| `GET` | `/sdk/datasets` | Datasets visible to a kernel or job (container token) |
+| `GET` | `/sdk/datasets/resolve` | Presigned URL for one dataset, by filename or id |
 
 ---
 
@@ -335,12 +358,10 @@ This deletes all local data.
 
 - **Logs lag up to 15 seconds** while a job runs; the worker snapshots them to the bucket rather than streaming.
 - **Jobs are capped at one hour** by `MAX_RUNTIME_SECONDS` in `backend/app/workers/tasks.py`, independently of `MODAL_TIMEOUT_SECONDS`. Raise both for longer runs.
-- **Notebooks and jobs aren't connected** — there is no "run this notebook as a job" action yet; paste the code into the job form.
-- **No export button in the UI** for notebooks; the endpoint exists.
 - **Checkpoint metrics aren't parsed** — the `metrics` column on `job_checkpoints` is always empty.
 - **Reconciling long-finished Modal runs is unverified.** Status retrieval has been confirmed for sandboxes finished around 25 minutes earlier; behaviour for sandboxes finished hours earlier has not been tested, and a hung read could stall the reconcile sweep.
 - **The platform itself runs locally**, so the web app is unavailable while your machine is off, even though Modal jobs continue.
-- **Local CPU jobs run without network access** (`network_disabled=True`), so they cannot `pip install` at runtime.
+- **`tn.load()` does not work from a Modal job unless the backend is reachable from the internet.** The sandbox runs on Modal's hardware and cannot resolve a Compose service name. Set `PUBLIC_API_BASE_URL` to a tunnel or deployment to enable it; local CPU jobs and notebooks are unaffected.
 
 ## Security notes
 
