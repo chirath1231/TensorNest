@@ -20,11 +20,16 @@ from app.core.storage import get_presign_client, get_s3_client
 settings = get_settings()
 
 
-def build_object_key(owner_id: uuid.UUID, filename: str) -> str:
+def build_object_key(owner_id: uuid.UUID, filename: str, prefix: str = "uploads") -> str:
     """Namespace the key by owner and prefix a random component, so two users
-    uploading `train.csv` never collide and a leaked key cannot be guessed."""
+    uploading `train.csv` never collide and a leaked key cannot be guessed.
+
+    `prefix` separates classes of object that have different lifecycles —
+    datasets under `uploads/`, profile pictures under `avatars/` — so a
+    lifecycle rule or a quota query can address one without the other.
+    """
     safe_name = os.path.basename(filename) or "upload.bin"
-    return f"uploads/{owner_id}/{uuid.uuid4().hex}_{safe_name}"
+    return f"{prefix}/{owner_id}/{uuid.uuid4().hex}_{safe_name}"
 
 
 def _fileobj_size(fileobj: BinaryIO) -> int:
@@ -40,6 +45,7 @@ async def upload_fileobj(
     filename: str,
     fileobj: BinaryIO,
     content_type: str = "application/octet-stream",
+    prefix: str = "uploads",
 ) -> tuple[str, int]:
     """Stream a file into the bucket and return (object_key, size_in_bytes).
 
@@ -47,7 +53,7 @@ async def upload_fileobj(
     multi-gigabyte dataset never has to be held in memory the way a plain
     `await file.read()` would.
     """
-    key = build_object_key(owner_id, filename)
+    key = build_object_key(owner_id, filename, prefix)
 
     def _put() -> int:
         size = _fileobj_size(fileobj)
