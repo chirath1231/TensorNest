@@ -2,20 +2,35 @@
 
 import { ChangeEvent, DragEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Database, FileSpreadsheet, FileText, Image as ImageIcon, Search, Trash2, UploadCloud } from "lucide-react";
+import {
+  Database,
+  Download,
+  FileSpreadsheet,
+  FileText,
+  Globe,
+  Image as ImageIcon,
+  Loader2,
+  RefreshCw,
+  Trash2,
+  UploadCloud,
+} from "lucide-react";
 import { toast } from "sonner";
 import { AuthGuard } from "@/components/AuthGuard";
 import { NavBar } from "@/components/NavBar";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SkeletonRows } from "@/components/ui/Skeleton";
+import { PageHeader, SearchInput } from "@/components/ui/PageHeader";
 import { useConfirm } from "@/components/ui/useConfirm";
-import { filesApi } from "@/lib/resources";
+import { ImportDialog } from "@/components/datasets/ImportDialog";
+import { discoverApi, filesApi } from "@/lib/resources";
 import type { FileRecord } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
 function fileIcon(filename: string) {
@@ -25,6 +40,11 @@ function fileIcon(filename: string) {
   if (["json", "txt", "md", "yaml", "yml"].includes(ext)) return FileText;
   return Database;
 }
+
+const sourceLabels: Record<string, string> = {
+  huggingface: "Hugging Face",
+  url: "Link",
+};
 
 interface PendingUpload {
   key: string;
@@ -38,6 +58,7 @@ function DatasetsContent() {
   const [query, setQuery] = useState("");
   const [dragActive, setDragActive] = useState(false);
   const [uploads, setUploads] = useState<PendingUpload[]>([]);
+  const [importOpen, setImportOpen] = useState(false);
   const dragCounter = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const { confirm, dialog } = useConfirm();
@@ -54,10 +75,21 @@ function DatasetsContent() {
     refresh();
   }, [refresh]);
 
+  // An import finishes on the worker, so the only way this page learns about it
+  // is to ask. Polling runs only while something is actually in flight.
+  const hasImporting = files.some((f) => f.status === "importing");
+  useEffect(() => {
+    if (!hasImporting) return;
+    const id = setInterval(refresh, 3000);
+    return () => clearInterval(id);
+  }, [hasImporting, refresh]);
+
   const filtered = useMemo(
     () => files.filter((f) => f.filename.toLowerCase().includes(query.toLowerCase())),
     [files, query]
   );
+
+  const totalSize = useMemo(() => files.reduce((sum, f) => sum + f.size, 0), [files]);
 
   async function uploadOne(file: File) {
     const key = `${file.name}-${Date.now()}`;
@@ -97,6 +129,25 @@ function DatasetsContent() {
     for (const file of list) await uploadOne(file);
   }
 
+  async function handleDownload(file: FileRecord) {
+    try {
+      const { url } = await filesApi.downloadUrl(file.id);
+      window.open(url, "_blank", "noopener");
+    } catch {
+      toast.error("Failed to create a download link");
+    }
+  }
+
+  async function handleRetry(file: FileRecord) {
+    try {
+      await discoverApi.retry(file.id);
+      toast.success(`Retrying ${file.filename}`);
+      refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not retry that import");
+    }
+  }
+
   async function handleDelete(file: FileRecord) {
     const ok = await confirm({
       title: `Delete "${file.filename}"?`,
@@ -117,44 +168,79 @@ function DatasetsContent() {
   }
 
   return (
-    <div>
+    <div className="min-h-screen">
       <NavBar />
       {dialog}
-      <main className="mx-auto max-w-4xl px-6 py-8">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-xl font-semibold dark:text-[#e6c163]">Datasets</h1>
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#e6c163]" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search files…"
-                className="w-48 rounded-md border border-[#f2bc33] py-1.5 pl-8 pr-3 text-sm outline-none transition focus:w-64 focus:border-cyan-500 dark:bg-neutral-900 dark:text-[#e6c163]"
-              />
-            </div>
-            <label className="cursor-pointer rounded-md bg-cyan-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-cyan-700">
-              Upload File
-              <input ref={inputRef} type="file" multiple onChange={handleFileInput} className="hidden" />
-            </label>
-          </div>
-        </div>
+      <ImportDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImported={refresh}
+      />
+      <main className="mx-auto max-w-5xl px-5 py-9">
+        <PageHeader
+          title="Datasets"
+          description={
+            files.length
+              ? `${files.length} file${files.length === 1 ? "" : "s"} · ${formatSize(totalSize)} stored`
+              : "Files available to your notebooks and jobs."
+          }
+        >
+          <SearchInput value={query} onChange={setQuery} placeholder="Search files…" />
+          <button onClick={() => setImportOpen(true)} className="btn-ghost border border-white/12">
+            <Globe className="h-4 w-4" />
+            Import from web
+          </button>
+          <button onClick={() => inputRef.current?.click()} className="btn-accent">
+            <UploadCloud className="h-4 w-4" />
+            Upload
+          </button>
+          <input
+            ref={inputRef}
+            type="file"
+            multiple
+            onChange={handleFileInput}
+            className="hidden"
+          />
+        </PageHeader>
 
         <div
           onDragEnter={(e) => handleDrag(e, 1)}
           onDragLeave={(e) => handleDrag(e, -1)}
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleDrop}
-          className={`mb-6 flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-8 text-center transition-colors ${
-            dragActive ? "border-cyan-500 bg-cyan-50 dark:bg-cyan-950/30" : "border-[#f2bc33]"
-          }`}
+          className={cn(
+            "glass mb-6 flex flex-col items-center justify-center rounded-2xl border-dashed px-6 py-10 text-center transition-all",
+            dragActive
+              ? "scale-[1.01] border-cyan-400/60 bg-cyan-400/10"
+              : "hover:border-white/20"
+          )}
         >
-          <UploadCloud className={`mb-2 h-6 w-6 ${dragActive ? "text-cyan-600" : "text-[#e6c163]"}`} />
-          <p className="text-sm text-[#e6c163] dark:text-[#e6c163]">
-            Drag and drop files here, or{" "}
-            <button onClick={() => inputRef.current?.click()} className="font-medium text-cyan-600 underline">
-              browse
-            </button>
+          <motion.div
+            animate={dragActive ? { y: -4, scale: 1.08 } : { y: 0, scale: 1 }}
+            transition={{ type: "spring", stiffness: 340, damping: 22 }}
+            className="mb-3 grid h-12 w-12 place-items-center rounded-2xl border border-white/10 bg-gradient-to-br from-cyan-400/15 to-violet-500/15"
+          >
+            <UploadCloud
+              className={cn("h-5 w-5 transition-colors", dragActive ? "text-cyan-200" : "text-slate-300")}
+            />
+          </motion.div>
+          <p className="text-sm text-slate-300">
+            {dragActive ? (
+              "Drop to upload"
+            ) : (
+              <>
+                Drag files here, or{" "}
+                <button
+                  onClick={() => inputRef.current?.click()}
+                  className="font-medium text-cyan-300 underline-offset-4 hover:underline"
+                >
+                  browse
+                </button>
+              </>
+            )}
+          </p>
+          <p className="mt-1 text-xs text-muted">
+            Uploads stream straight to object storage, so large files are safe.
           </p>
         </div>
 
@@ -165,15 +251,15 @@ function DatasetsContent() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="mb-3 overflow-hidden rounded-md border border-[#f2bc33] px-3 py-2"
+              className="glass mb-3 overflow-hidden rounded-xl px-4 py-3"
             >
-              <div className="mb-1 flex items-center justify-between text-xs">
-                <span className="truncate text-[#e6c163] dark:text-[#e6c163]">{u.name}</span>
-                <span className="text-[#e6c163]">{u.progress}%</span>
+              <div className="mb-2 flex items-center justify-between text-xs">
+                <span className="truncate text-slate-200">{u.name}</span>
+                <span className="tabular-nums text-muted">{u.progress}%</span>
               </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
+              <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
                 <motion.div
-                  className="h-full rounded-full bg-cyan-600"
+                  className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-violet-500"
                   animate={{ width: `${u.progress}%` }}
                   transition={{ duration: 0.2 }}
                 />
@@ -189,11 +275,12 @@ function DatasetsContent() {
             icon={Database}
             title="No files uploaded yet"
             description="Upload a dataset to make it available to notebooks and jobs."
+            action={{ label: "Upload a file", onClick: () => inputRef.current?.click() }}
           />
         ) : filtered.length === 0 ? (
-          <p className="py-12 text-center text-sm text-[#e6c163]">No files match “{query}”.</p>
+          <p className="py-14 text-center text-sm text-muted">No files match “{query}”.</p>
         ) : (
-          <ul className="divide-y divide-[#f2bc33] rounded-lg border border-[#f2bc33]">
+          <ul className="glass divide-y divide-white/[0.07] overflow-hidden rounded-2xl">
             <AnimatePresence initial={false}>
               {filtered.map((file) => {
                 const Icon = fileIcon(file.filename);
@@ -204,26 +291,65 @@ function DatasetsContent() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0, x: -8 }}
-                    className="group flex items-center justify-between px-4 py-3"
+                    className="group flex items-center justify-between gap-3 px-4 py-3.5 transition-colors hover:bg-white/[0.04]"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-md bg-neutral-100 text-[#e6c163] dark:bg-neutral-800 dark:text-[#e6c163]">
-                        <Icon className="h-4 w-4" />
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/[0.06]">
+                        <Icon className="h-4 w-4 text-cyan-200" />
                       </div>
-                      <div>
-                        <p className="text-sm font-medium dark:text-[#e6c163]">{file.filename}</p>
-                        <p className="text-xs text-[#e6c163]">
-                          {formatSize(file.size)} Â· {new Date(file.created_at).toLocaleString()}
+                      <div className="min-w-0">
+                        <p className="flex items-center gap-2 truncate text-sm font-medium text-slate-100">
+                          {file.filename}
+                          {file.source !== "upload" && (
+                            <span className="shrink-0 rounded bg-white/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-slate-400">
+                              {sourceLabels[file.source] ?? file.source}
+                            </span>
+                          )}
                         </p>
+                        {file.status === "importing" ? (
+                          <p className="flex items-center gap-1.5 text-xs text-cyan-200">
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            Importing from the web…
+                          </p>
+                        ) : file.status === "failed" ? (
+                          <p className="truncate text-xs text-rose-300">
+                            Import failed — {file.error_message || "unknown error"}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-muted">
+                            {formatSize(file.size)} · {new Date(file.created_at).toLocaleString()}
+                            {file.data_license && ` · ${file.data_license}`}
+                          </p>
+                        )}
                       </div>
                     </div>
-                    <button
-                      onClick={() => handleDelete(file)}
-                      className="rounded-md p-1.5 text-[#e6c163] opacity-0 transition hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 dark:text-[#e6c163] dark:hover:bg-red-950/40"
-                      aria-label="Delete file"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    <div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
+                      {file.status === "failed" && (
+                        <button
+                          onClick={() => handleRetry(file)}
+                          className="rounded-lg p-2 text-slate-400 transition hover:bg-white/10 hover:text-cyan-200"
+                          aria-label={`Retry importing ${file.filename}`}
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                        </button>
+                      )}
+                      {file.status === "ready" && (
+                        <button
+                          onClick={() => handleDownload(file)}
+                          className="rounded-lg p-2 text-slate-400 transition hover:bg-white/10 hover:text-slate-100"
+                          aria-label={`Download ${file.filename}`}
+                        >
+                          <Download className="h-4 w-4" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDelete(file)}
+                        className="rounded-lg p-2 text-slate-400 transition hover:bg-rose-500/15 hover:text-rose-300"
+                        aria-label={`Delete ${file.filename}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </motion.li>
                 );
               })}

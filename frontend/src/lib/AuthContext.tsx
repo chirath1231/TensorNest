@@ -11,6 +11,9 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => void;
+  /** Adopt a user the server just returned, so an edit shows in the header
+   *  immediately rather than after the next full page load. */
+  applyUser: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -75,8 +78,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     window.location.href = "/login";
   }, []);
 
+  const applyUser = useCallback((next: User) => setUser(next), []);
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, applyUser }}>
       {children}
     </AuthContext.Provider>
   );

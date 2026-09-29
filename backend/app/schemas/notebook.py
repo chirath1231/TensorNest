@@ -24,3 +24,12 @@ class NotebookSummary(BaseModel):
 
 class NotebookResponse(NotebookSummary):
     content: dict
+
+
+class NotebookExportResponse(BaseModel):
+    """Result of writing a notebook to the bucket as an .ipynb file."""
+
+    object_key: str
+    size: int
+    filename: str
+    url: str

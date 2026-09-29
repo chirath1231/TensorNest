@@ -2,94 +2,148 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { AlertCircle, ArrowRight, Loader2, Lock, Mail } from "lucide-react";
 import { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/AuthContext";
+import { AuthShell } from "@/components/ui/AuthShell";
+import { Field } from "@/components/ui/Field";
+import { validateEmail, validateLoginPassword } from "@/lib/validation";
+
+type FieldName = "email" | "password";
 
 export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Partial<Record<FieldName, string>>>({});
+  // A field only shows its error once the user has left it or tried to submit,
+  // so the form is not scolding them about an email they are still typing.
+  const [touched, setTouched] = useState<Partial<Record<FieldName, boolean>>>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  function runValidation() {
+    const next: Partial<Record<FieldName, string>> = {};
+    const e = validateEmail(email);
+    const p = validateLoginPassword(password);
+    if (e) next.email = e;
+    if (p) next.password = p;
+    setErrors(next);
+    return next;
+  }
+
+  function handleBlur(field: FieldName) {
+    setTouched((t) => ({ ...t, [field]: true }));
+    runValidation();
+  }
+
+  // Re-validate on every keystroke so a field the user has already visited
+  // clears its message the moment it becomes valid. Errors stay hidden until
+  // the field is touched, so this never nags someone mid-typing.
+  useEffect(() => {
+    runValidation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [email, password]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError(null);
+    setFormError(null);
+
+    const found = runValidation();
+    if (Object.keys(found).length > 0) {
+      setTouched({ email: true, password: true });
+      // Move focus to the first bad field so keyboard users are not stranded.
+      document.getElementById(Object.keys(found)[0])?.focus();
+      return;
+    }
+
     setSubmitting(true);
     try {
-      await login(email, password);
+      await login(email.trim(), password);
       router.push("/dashboard");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Login failed");
+      setFormError(
+        err instanceof ApiError
+          ? err.status === 401
+            ? "Invalid email or password."
+            : err.message
+          : "Could not reach the server. Is the backend running?"
+      );
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-50 dark:bg-neutral-950">
-      <motion.form
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2 }}
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm space-y-4 rounded-lg border border-[#f2bc33] bg-white p-8 shadow-sm dark:bg-neutral-900"
-      >
-        <div>
-          <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-md bg-cyan-600 text-sm font-semibold text-white">
-            TN
-          </div>
-          <h1 className="text-lg font-semibold dark:text-[#e6c163]">Sign in to TensorNest</h1>
-        </div>
-        <AnimatePresence>
-          {error && (
+    <AuthShell title="Welcome back" subtitle="Sign in to pick up your notebooks and running jobs.">
+      <form onSubmit={handleSubmit} noValidate className="space-y-5">
+        <AnimatePresence initial={false}>
+          {formError && (
             <motion.p
-              initial={{ opacity: 0, x: -4 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0 }}
-              className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600"
+              initial={{ opacity: 0, y: -4, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              role="alert"
+              className="flex items-center gap-2 overflow-hidden rounded-xl border border-rose-400/30 bg-rose-500/10 px-3.5 py-2.5 text-sm text-rose-200"
             >
-              {error}
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              {formError}
             </motion.p>
           )}
         </AnimatePresence>
-        <div className="space-y-1">
-          <label className="text-sm text-[#e6c163] dark:text-[#e6c163]">Email</label>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-md border border-[#f2bc33] px-3 py-2 text-sm outline-none transition focus:border-cyan-500 dark:bg-neutral-900 dark:text-[#e6c163]"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-sm text-[#e6c163] dark:text-[#e6c163]">Password</label>
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-md border border-[#f2bc33] px-3 py-2 text-sm outline-none transition focus:border-cyan-500 dark:bg-neutral-900 dark:text-[#e6c163]"
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full rounded-md bg-cyan-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-cyan-700 disabled:opacity-50"
-        >
-          {submitting ? "Signing in…" : "Sign in"}
+
+        <Field
+          id="email"
+          label="Email"
+          type="email"
+          icon={Mail}
+          value={email}
+          onChange={setEmail}
+          onBlur={() => handleBlur("email")}
+          error={touched.email ? errors.email : null}
+          placeholder="you@example.com"
+          autoComplete="email"
+        />
+        <Field
+          id="password"
+          label="Password"
+          type="password"
+          icon={Lock}
+          value={password}
+          onChange={setPassword}
+          onBlur={() => handleBlur("password")}
+          error={touched.password ? errors.password : null}
+          placeholder="••••••••"
+          autoComplete="current-password"
+        />
+
+        <button type="submit" disabled={submitting} className="btn-accent w-full">
+          {submitting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Signing in…
+            </>
+          ) : (
+            <>
+              Sign in
+              <ArrowRight className="h-4 w-4" />
+            </>
+          )}
         </button>
-        <p className="text-center text-sm text-[#e6c163]">
+
+        <p className="text-center text-sm text-muted">
           No account?{" "}
-          <Link href="/register" className="text-cyan-600 underline">
-            Register
+          <Link
+            href="/register"
+            className="font-medium text-cyan-300 underline-offset-4 transition hover:text-cyan-200 hover:underline"
+          >
+            Create one
           </Link>
         </p>
-      </motion.form>
-    </div>
+      </form>
+    </AuthShell>
   );
 }

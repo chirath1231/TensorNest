@@ -1,11 +1,18 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { AlertCircle, ArrowRight, Loader2, Lock, Mail, User } from "lucide-react";
 import { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/AuthContext";
+import { AuthShell } from "@/components/ui/AuthShell";
+import { Field } from "@/components/ui/Field";
+import { PasswordStrength } from "@/components/ui/PasswordStrength";
+import { NAME_MAX, PASSWORD_MAX, validateEmail, validateName, validatePassword } from "@/lib/validation";
+
+type FieldName = "name" | "email" | "password";
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -13,94 +20,154 @@ export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Partial<Record<FieldName, string>>>({});
+  const [touched, setTouched] = useState<Partial<Record<FieldName, boolean>>>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  function runValidation() {
+    const next: Partial<Record<FieldName, string>> = {};
+    const n = validateName(name);
+    const e = validateEmail(email);
+    const p = validatePassword(password);
+    if (n) next.name = n;
+    if (e) next.email = e;
+    if (p) next.password = p;
+    setErrors(next);
+    return next;
+  }
+
+  function handleBlur(field: FieldName) {
+    setTouched((t) => ({ ...t, [field]: true }));
+    runValidation();
+  }
+
+  // Re-validate on every keystroke so a field the user has already visited
+  // clears its message the moment it becomes valid. Errors stay hidden until
+  // the field is touched, so this never nags someone mid-typing.
+  useEffect(() => {
+    runValidation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [name, email, password]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError(null);
+    setFormError(null);
+
+    const found = runValidation();
+    if (Object.keys(found).length > 0) {
+      setTouched({ name: true, email: true, password: true });
+      document.getElementById(Object.keys(found)[0])?.focus();
+      return;
+    }
+
     setSubmitting(true);
     try {
-      await register(email, password, name);
+      await register(email.trim(), password, name.trim());
       router.push("/dashboard");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Registration failed");
+      if (err instanceof ApiError && err.status === 409) {
+        // Attach a duplicate-email conflict to the field it belongs to.
+        setErrors((prev) => ({ ...prev, email: "That email is already registered." }));
+        setTouched((t) => ({ ...t, email: true }));
+        document.getElementById("email")?.focus();
+      } else {
+        setFormError(
+          err instanceof ApiError
+            ? err.message
+            : "Could not reach the server. Is the backend running?"
+        );
+      }
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-50 dark:bg-neutral-950">
-      <motion.form
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2 }}
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm space-y-4 rounded-lg border border-[#f2bc33] bg-white p-8 shadow-sm dark:bg-neutral-900"
-      >
-        <div>
-          <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-md bg-cyan-600 text-sm font-semibold text-white">
-            TN
-          </div>
-          <h1 className="text-lg font-semibold dark:text-[#e6c163]">Create your TensorNest account</h1>
-        </div>
-        <AnimatePresence>
-          {error && (
+    <AuthShell
+      title="Create your account"
+      subtitle="Takes a moment. No card, no cluster to configure."
+    >
+      <form onSubmit={handleSubmit} noValidate className="space-y-5">
+        <AnimatePresence initial={false}>
+          {formError && (
             <motion.p
-              initial={{ opacity: 0, x: -4 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0 }}
-              className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600"
+              initial={{ opacity: 0, y: -4, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              role="alert"
+              className="flex items-center gap-2 overflow-hidden rounded-xl border border-rose-400/30 bg-rose-500/10 px-3.5 py-2.5 text-sm text-rose-200"
             >
-              {error}
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              {formError}
             </motion.p>
           )}
         </AnimatePresence>
-        <div className="space-y-1">
-          <label className="text-sm text-[#e6c163] dark:text-[#e6c163]">Name</label>
-          <input
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-md border border-[#f2bc33] px-3 py-2 text-sm outline-none transition focus:border-cyan-500 dark:bg-neutral-900 dark:text-[#e6c163]"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-sm text-[#e6c163] dark:text-[#e6c163]">Email</label>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-md border border-[#f2bc33] px-3 py-2 text-sm outline-none transition focus:border-cyan-500 dark:bg-neutral-900 dark:text-[#e6c163]"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-sm text-[#e6c163] dark:text-[#e6c163]">Password</label>
-          <input
-            type="password"
-            required
-            minLength={8}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-md border border-[#f2bc33] px-3 py-2 text-sm outline-none transition focus:border-cyan-500 dark:bg-neutral-900 dark:text-[#e6c163]"
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full rounded-md bg-cyan-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-cyan-700 disabled:opacity-50"
+
+        <Field
+          id="name"
+          label="Name"
+          icon={User}
+          value={name}
+          onChange={setName}
+          onBlur={() => handleBlur("name")}
+          error={touched.name ? errors.name : null}
+          maxLength={NAME_MAX}
+          placeholder="Ada Lovelace"
+          autoComplete="name"
+        />
+        <Field
+          id="email"
+          label="Email"
+          type="email"
+          icon={Mail}
+          value={email}
+          onChange={setEmail}
+          onBlur={() => handleBlur("email")}
+          error={touched.email ? errors.email : null}
+          placeholder="you@example.com"
+          autoComplete="email"
+        />
+        <Field
+          id="password"
+          label="Password"
+          type="password"
+          icon={Lock}
+          value={password}
+          onChange={setPassword}
+          onBlur={() => handleBlur("password")}
+          error={touched.password ? errors.password : null}
+          maxLength={PASSWORD_MAX}
+          placeholder="At least 8 characters"
+          autoComplete="new-password"
         >
-          {submitting ? "Creating account…" : "Create account"}
+          <PasswordStrength password={password} />
+        </Field>
+
+        <button type="submit" disabled={submitting} className="btn-accent w-full">
+          {submitting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Creating account…
+            </>
+          ) : (
+            <>
+              Create account
+              <ArrowRight className="h-4 w-4" />
+            </>
+          )}
         </button>
-        <p className="text-center text-sm text-[#e6c163]">
+
+        <p className="text-center text-sm text-muted">
           Already have an account?{" "}
-          <Link href="/login" className="text-cyan-600 underline">
+          <Link
+            href="/login"
+            className="font-medium text-cyan-300 underline-offset-4 transition hover:text-cyan-200 hover:underline"
+          >
             Sign in
           </Link>
         </p>
-      </motion.form>
-    </div>
+      </form>
+    </AuthShell>
   );
 }

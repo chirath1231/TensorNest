@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, String, Text, func
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -21,6 +21,11 @@ class Job(Base):
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="queued")
     provider_type: Mapped[str] = mapped_column(String(32), nullable=False, default="local_cpu")
     container_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # Local job containers used to run with networking off unconditionally.
+    # That now has to be a choice, because a job with no network cannot reach
+    # this API either — and so cannot load a dataset, which is the main reason
+    # to run one. Defaults on; uncheck it for a genuinely isolated run.
+    allow_network: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     progress: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

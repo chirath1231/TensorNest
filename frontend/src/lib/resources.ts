@@ -1,6 +1,18 @@
 import { apiFetch, API_BASE_URL, ApiError } from "./api";
 import { getAccessToken } from "./auth";
-import type { FileRecord, Job, Notebook, NotebookSummary } from "./types";
+import type {
+  AppNotification,
+  Checkpoint,
+  DiscoverResult,
+  DiscoverSource,
+  FileRecord,
+  Job,
+  Notebook,
+  NotebookSummary,
+  NotificationList,
+  ProviderType,
+  User,
+} from "./types";
 
 export const notebooksApi = {
   list: () => apiFetch<NotebookSummary[]>("/notebooks"),
@@ -15,15 +27,29 @@ export const notebooksApi = {
       method: "POST",
     }),
   stopKernel: (id: string) => apiFetch<void>(`/notebooks/${id}/kernel`, { method: "DELETE" }),
+  export: (id: string) =>
+    apiFetch<{ object_key: string; size: number; filename: string; url: string }>(
+      `/notebooks/${id}/export`,
+      { method: "POST" }
+    ),
 };
 
 export const jobsApi = {
   list: () => apiFetch<Job[]>("/jobs"),
   get: (id: string) => apiFetch<Job>(`/jobs/${id}`),
-  create: (payload: { name: string; script_source: string; notebook_id?: string | null }) =>
-    apiFetch<Job>("/jobs", { method: "POST", body: JSON.stringify(payload) }),
+  create: (payload: {
+    name: string;
+    script_source: string;
+    notebook_id?: string | null;
+    provider_type?: ProviderType;
+    allow_network?: boolean;
+  }) => apiFetch<Job>("/jobs", { method: "POST", body: JSON.stringify(payload) }),
   logs: (id: string) => apiFetch<{ logs: string }>(`/jobs/${id}/logs`),
-  checkpoints: (id: string) => apiFetch<{ checkpoints: string[] }>(`/jobs/${id}/checkpoints`),
+  checkpoints: (id: string) => apiFetch<{ checkpoints: Checkpoint[] }>(`/jobs/${id}/checkpoints`),
+  checkpointUrl: (id: string, name: string) =>
+    apiFetch<{ url: string; filename: string }>(
+      `/jobs/${id}/checkpoints/${encodeURIComponent(name)}/download`
+    ),
   cancel: (id: string) => apiFetch<Job>(`/jobs/${id}/cancel`, { method: "POST" }),
 };
 
@@ -62,5 +88,46 @@ export const filesApi = {
       xhr.send(formData);
     });
   },
+  downloadUrl: (id: string) =>
+    apiFetch<{ url: string; filename: string }>(`/files/${id}/download`),
   remove: (id: string) => apiFetch<void>(`/files/${id}`, { method: "DELETE" }),
+};
+
+export const discoverApi = {
+  sources: () => apiFetch<{ sources: DiscoverSource[] }>("/discover/sources"),
+  search: (q: string, limit = 20) =>
+    apiFetch<{ results: DiscoverResult[] }>(
+      `/discover/search?q=${encodeURIComponent(q)}&limit=${limit}`
+    ),
+  describe: (source: string, ref: string) =>
+    apiFetch<DiscoverResult>(
+      `/discover/describe?source=${encodeURIComponent(source)}&ref=${encodeURIComponent(ref)}`
+    ),
+  import: (payload: { source: string; ref: string; path: string; filename?: string }) =>
+    apiFetch<FileRecord>("/discover/import", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  retry: (fileId: string) =>
+    apiFetch<FileRecord>(`/discover/import/${fileId}/retry`, { method: "POST" }),
+};
+
+export const profileApi = {
+  update: (payload: { name: string; bio: string }) =>
+    apiFetch<User>("/users/me", { method: "PATCH", body: JSON.stringify(payload) }),
+  uploadAvatar: (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return apiFetch<User>("/users/me/avatar", { method: "POST", body: formData });
+  },
+  removeAvatar: () => apiFetch<User>("/users/me/avatar", { method: "DELETE" }),
+};
+
+export const notificationsApi = {
+  list: (limit = 30) => apiFetch<NotificationList>(`/notifications?limit=${limit}`),
+  markRead: (id: string) =>
+    apiFetch<AppNotification>(`/notifications/${id}/read`, { method: "POST" }),
+  markAllRead: () => apiFetch<{ updated: number }>("/notifications/read-all", { method: "POST" }),
+  sendTestEmail: () =>
+    apiFetch<{ sent_to: string }>("/notifications/test-email", { method: "POST" }),
 };

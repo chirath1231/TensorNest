@@ -1,9 +1,9 @@
-﻿"use client";
+"use client";
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ListChecks, Plus, X } from "lucide-react";
+import { ChevronRight, ListChecks, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { AuthGuard } from "@/components/AuthGuard";
 import { NavBar } from "@/components/NavBar";
@@ -11,10 +11,19 @@ import { JobForm } from "@/components/jobs/JobForm";
 import { JobStatusBadge } from "@/components/jobs/JobStatusBadge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SkeletonRows } from "@/components/ui/Skeleton";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { jobsApi } from "@/lib/resources";
 import type { Job } from "@/lib/types";
 
 const TERMINAL = new Set(["succeeded", "failed", "cancelled"]);
+
+const RAIL: Record<string, string> = {
+  running: "bg-cyan-400",
+  succeeded: "bg-emerald-400",
+  failed: "bg-rose-400",
+  queued: "bg-amber-400",
+  cancelled: "bg-slate-500",
+};
 
 function JobsContent() {
   const router = useRouter();
@@ -48,30 +57,27 @@ function JobsContent() {
   const anyLive = jobs.some((j) => !TERMINAL.has(j.status));
 
   return (
-    <div>
+    <div className="min-h-screen">
       <NavBar />
-      <main className="mx-auto max-w-4xl px-6 py-8">
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-xl font-semibold dark:text-[#e6c163]">Background Jobs</h1>
-            {anyLive && (
-              <span className="flex items-center gap-1.5 rounded-full bg-cyan-50 px-2 py-0.5 text-xs font-medium text-cyan-600 dark:bg-cyan-950/50 dark:text-cyan-400">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-500 opacity-75" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-cyan-600" />
-                </span>
-                Live
+      <main className="mx-auto max-w-4xl px-5 py-9">
+        <PageHeader
+          title="Jobs"
+          description="Detached runs. They keep going after you close the tab."
+        >
+          {anyLive && (
+            <span className="flex items-center gap-1.5 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2.5 py-1 text-xs font-medium text-cyan-200">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-300 opacity-75" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-cyan-300" />
               </span>
-            )}
-          </div>
-          <button
-            onClick={() => setShowForm((v) => !v)}
-            className="flex items-center gap-1.5 rounded-md bg-cyan-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-cyan-700"
-          >
+              Live
+            </span>
+          )}
+          <button onClick={() => setShowForm((v) => !v)} className="btn-accent">
             {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-            {showForm ? "Cancel" : "New Job"}
+            {showForm ? "Cancel" : "New job"}
           </button>
-        </div>
+        </PageHeader>
 
         <AnimatePresence initial={false}>
           {showForm && (
@@ -79,7 +85,7 @@ function JobsContent() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.18 }}
+              transition={{ duration: 0.22 }}
               className="mb-6 overflow-hidden"
             >
               <JobForm
@@ -100,10 +106,10 @@ function JobsContent() {
             icon={ListChecks}
             title="No jobs submitted yet"
             description="Submit a script to run it against a compute provider in the background."
-            action={{ label: "New Job", onClick: () => setShowForm(true) }}
+            action={{ label: "New job", onClick: () => setShowForm(true) }}
           />
         ) : (
-          <ul className="divide-y divide-[#f2bc33] rounded-lg border border-[#f2bc33]">
+          <ul className="glass divide-y divide-white/[0.07] overflow-hidden rounded-2xl">
             <AnimatePresence initial={false}>
               {jobs.map((job) => (
                 <motion.li
@@ -113,45 +119,37 @@ function JobsContent() {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   onClick={() => router.push(`/jobs/${job.id}`)}
-                  className="group relative flex cursor-pointer items-center justify-between overflow-hidden px-4 py-3.5 transition hover:bg-neutral-50 dark:hover:bg-neutral-900"
+                  className="group relative flex cursor-pointer items-center justify-between gap-3 overflow-hidden px-4 py-4 transition hover:bg-white/[0.05]"
                 >
                   <span
-                    className={`absolute left-0 top-0 h-full w-0.5 ${
-                      job.status === "running"
-                        ? "bg-cyan-500"
-                        : job.status === "succeeded"
-                          ? "bg-green-500"
-                          : job.status === "failed"
-                            ? "bg-red-500"
-                            : "bg-neutral-200"
-                    }`}
+                    className={`absolute left-0 top-0 h-full w-[3px] ${RAIL[job.status] ?? "bg-slate-600"}`}
                   />
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-[#e6c163] dark:text-[#e6c163]">{job.name}</span>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="truncate text-sm font-medium text-slate-100">{job.name}</span>
                     <JobStatusBadge status={job.status} />
                   </div>
-                  <div className="flex items-center gap-4">
-                    {job.status === "running" &&
-                      (job.progress > 0 ? (
-                        <div className="h-1.5 w-24 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
+                  <div className="flex shrink-0 items-center gap-4">
+                    {job.status === "running" && (
+                      <div className="hidden h-1.5 w-24 overflow-hidden rounded-full bg-white/10 sm:block">
+                        {job.progress > 0 ? (
                           <motion.div
-                            className="h-full rounded-full bg-cyan-500"
+                            className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-violet-500"
                             animate={{ width: `${job.progress * 100}%` }}
                             transition={{ duration: 0.4 }}
                           />
-                        </div>
-                      ) : (
-                        <div className="h-1.5 w-24 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
+                        ) : (
                           <motion.div
                             className="h-full w-1/3 rounded-full bg-cyan-400"
                             animate={{ x: ["-100%", "300%"] }}
                             transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut" }}
                           />
-                        </div>
-                      ))}
-                    <span className="text-xs text-[#e6c163]">
+                        )}
+                      </div>
+                    )}
+                    <span className="hidden text-xs text-muted sm:inline">
                       {new Date(job.created_at).toLocaleString()}
                     </span>
+                    <ChevronRight className="h-4 w-4 text-slate-600 transition group-hover:translate-x-0.5 group-hover:text-slate-300" />
                   </div>
                 </motion.li>
               ))}

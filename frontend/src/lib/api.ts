@@ -10,6 +10,37 @@ export class ApiError extends Error {
   }
 }
 
+/** Turn a FastAPI error body into one readable sentence.
+ *
+ *  FastAPI answers a 422 with `detail` as an *array* of per-field objects
+ *  ({loc, msg, type}), not a string. Passing that straight to ApiError renders
+ *  as "[object Object]" in the UI, so validation failures have to be flattened
+ *  into "Field: message" before they reach a user. */
+export function extractDetail(body: unknown, fallback: string): string {
+  if (typeof body !== "object" || body === null) return fallback;
+  const detail = (body as { detail?: unknown }).detail;
+
+  if (typeof detail === "string") return detail;
+
+  if (Array.isArray(detail)) {
+    const parts = detail
+      .map((item) => {
+        if (typeof item !== "object" || item === null) return null;
+        const { loc, msg } = item as { loc?: unknown[]; msg?: string };
+        if (!msg) return null;
+        // loc looks like ["body", "password"]; the last entry names the field.
+        const field = Array.isArray(loc) ? loc[loc.length - 1] : undefined;
+        return typeof field === "string" && field !== "body"
+          ? `${field[0].toUpperCase()}${field.slice(1)}: ${msg}`
+          : msg;
+      })
+      .filter((x): x is string => Boolean(x));
+    if (parts.length) return parts.join(". ");
+  }
+
+  return fallback;
+}
+
 let refreshPromise: Promise<boolean> | null = null;
 
 async function tryRefresh(): Promise<boolean> {
@@ -69,8 +100,7 @@ export async function apiFetch<T>(
   if (!response.ok) {
     let detail = response.statusText;
     try {
-      const body = await response.json();
-      detail = body.detail || detail;
+      detail = extractDetail(await response.json(), detail);
     } catch {
       // ignore non-JSON error bodies
     }
